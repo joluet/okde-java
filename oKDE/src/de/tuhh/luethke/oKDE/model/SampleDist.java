@@ -26,7 +26,9 @@ public class SampleDist {
     // effective number of obesverved samples
     private double mN_eff;
     
-
+    /**
+     * Create new SampleDist
+     */
     public SampleDist() {
 	super();
 	mMeans = new ArrayList<SimpleMatrix>();
@@ -50,7 +52,12 @@ public class SampleDist {
 	mN_eff = weights.size();
 	mForgettingFactor = 1;
     }*/
-
+    
+    /**
+     * Returns the component weights of the distribution.
+     * 
+     * @return weights component weights
+     */
     public ArrayList<Double> getWeights() {
 	return mWeights;
     }
@@ -154,7 +161,7 @@ public class SampleDist {
 	return null;
     }
 
-    private static void reestimateBandwidth(SimpleMatrix[] means,
+    private void reestimateBandwidth(SimpleMatrix[] means,
 	    SimpleMatrix[] covariance, double[] weights, SimpleMatrix Cov_smp,
 	    double N_eff) {
 
@@ -176,7 +183,7 @@ public class SampleDist {
 	System.out.println("hAmise: " + hAmise);
     }
 
-    private static double getIntSquaredHessian(SimpleMatrix[] means,
+    private double getIntSquaredHessian(SimpleMatrix[] means,
 	    double[] weights, SimpleMatrix[] covariance, SimpleMatrix F,
 	    SimpleMatrix g) {
 
