@@ -106,17 +106,20 @@ public class SampleDist {
 	    mMeans.add(m);
 	for (SimpleMatrix c : covariances)
 	    mCovariances.add(c);
+	
+	Double[] weights = getWeights().toArray(new Double[0]);
 
 	// get empirical sample covariance by moment matching
 	SimpleMatrix covSmpl = projectToSubspace(this);
 	// reestimate bandwidth as explained in oKDE paper
-	double bandwidth = reestimateBandwidth(this.getMeans().toArray(new SimpleMatrix[0]), this.getCovariances().toArray(new SimpleMatrix[0]), doubles,
+	double bandwidth = reestimateBandwidth(this.getMeans().toArray(new SimpleMatrix[0]), this.getCovariances().toArray(new SimpleMatrix[0]), weights,
 		covSmpl, mN_eff);
 	this.setmBandwidthFactor(bandwidth);
 	// project Bandwidth into original space
 	SimpleMatrix bandwidthMatrix = projectBandwidthToOriginalSpace(this);
 	this.setmBandwidthMatrix(bandwidthMatrix);
-	System.out.println(bandwidthMatrix);
+	System.out.println("BW: "+bandwidthMatrix);
+	System.out.println(bandwidthMatrix.get(0,0)+" "+bandwidthMatrix.get(1,1));
     }
 
     private void checkInputParams(SimpleMatrix[] means,
@@ -157,7 +160,7 @@ public class SampleDist {
 	    mWeights.set(i, mWeights.get(i) * mixWeightOld);
 	}
 	for (int i = mWeights.size() - weights.length; i < mWeights.size(); i++) {
-	    mWeights.set(i, mWeights.get(i) * mixWeightNew);
+	    mWeights.set(i, mWeights.get(i) * mixWeightNew * (1d/weights.length));
 	}
 
 	System.out.println(mixWeightOld + "-" + mixWeightNew + " " + mWeightSum
@@ -242,20 +245,20 @@ public class SampleDist {
 		SimpleMatrix colU = U.extractVector(false, i);
 		double rowW = Math.pow(S.get(i, 0), -0.5);
 		colU = colU.scale(rowW);
-		System.out.println("col:" + colU);
+		//System.out.println("col:" + colU);
 		F = F.combine(0, F.numCols(), colU);
 		mean += S.get(i, 0);
 		count++;
 	    }
 	}
-	System.out.println("F: " + F);
+	//System.out.println("F: " + F);
 	mean = (mean / count) * 1e-2;
-	System.out.println("mean" + mean);
+	//System.out.println("mean" + mean);
 	for (int i = 0; i < S.numRows(); i++) {
-	    System.out.println(S.get(i, 0) + " - " + minBW);
+	    //System.out.println(S.get(i, 0) + " - " + minBW);
 	    if (S.get(i, 0) < minBW) {
 		S.set(i, 0, mean);
-		System.out.println("jaaaa");
+		//System.out.println("jaaaa");
 	    }
 	}
 	//System.out.println("S new: " + S.get(1, 0));
@@ -265,9 +268,9 @@ public class SampleDist {
 	    double rowW = Math.pow(S.get(i, 0), 0.5);
 	    coliF = coliF.scale(rowW).transpose();
 	    iF = iF.combine(iF.numRows(), 0, coliF);
-	    System.out.println("col:" + coliF);
+	    //System.out.println("col:" + coliF);
 	}
-	System.out.println(iF);
+	//System.out.println(iF);
 	SimpleMatrix subspaceCov = F.transpose().mult(overallCovariance).mult(F);
 	distribution.setmSubspaceCovariance(subspaceCov);
 	
@@ -286,7 +289,7 @@ public class SampleDist {
 	
 	distribution.setmSubspaceInverseCovariance(iF);
 	distribution.setmSubspace(subSpace);
-	System.out.println("Array: "+distribution.getmSubspace());
+	//System.out.println("Array: "+distribution.getmSubspace());
 
 	return subspaceCov;
     }
@@ -325,14 +328,20 @@ public class SampleDist {
     }
 
     private double reestimateBandwidth(SimpleMatrix[] means,
-	    SimpleMatrix[] covariance, double[] weights, SimpleMatrix Cov_smp,
+	    SimpleMatrix[] covariance, Double[] weights, SimpleMatrix Cov_smp,
 	    double N_eff) {
 
 	double d = means[0].numRows();
 
+	//Silverman
 	SimpleMatrix G = Cov_smp.scale(Math.pow((4 / ((d + 2) * N_eff)),
 		(2 / (d + 4))));
-
+	
+	//other
+	// Cov_smp *(2/(2+d))^(2/(4+d)) * 4 *N_eff^(-2/(4+d))
+	//SimpleMatrix G = Cov_smp.scale(Math.pow((2d / (d + 2d) ),
+	//		(2d / (d + 4d)) ) * 4 * Math.pow(N_eff,-2d/(4d+d)) );
+	
 	float alphaScale = 1;
 	SimpleMatrix F = Cov_smp.scale(alphaScale);
 
@@ -346,7 +355,7 @@ public class SampleDist {
 	return hAmise;
     }
 
-    private double getIntSquaredHessian(SimpleMatrix[] means, double[] weights,
+    private double getIntSquaredHessian(SimpleMatrix[] means, Double[] weights,
 	    SimpleMatrix[] covariance, SimpleMatrix F, SimpleMatrix g) {
 
 	long d = means[0].numRows();
@@ -384,8 +393,8 @@ public class SampleDist {
 			    + Math.pow(F.mult(C).trace(), 2);
 		} else {
 		    m = dm.transpose().mult(A).mult(dm).get(0);
-		    System.out.println("m: " + m);
-		    System.out.println("A:" + A);
+		    //System.out.println("m: " + m);
+		    //System.out.println("A:" + A);
 		    f_t = constNorm * Math.sqrt(A.determinant())
 			    * Math.exp(-0.5 * m);
 
@@ -403,10 +412,10 @@ public class SampleDist {
 		    eta = 1;
 		else
 		    eta = 2;
-		System.out.println(" f_t: " + f_t + " c: " + c
-			+ " w2*w1:" + (w2 * w1));
+		//System.out.println(" f_t: " + f_t + " c: " + c
+		//	+ " w2*w1:" + (w2 * w1));
 		I = I + f_t * c * w2 * w1 * eta;
-		System.out.println("I: " + I);
+		//System.out.println("I: " + I);
 	    }
 	}
 
