@@ -103,18 +103,17 @@ public class test {
 		weights[9] = 1d;*/
 		
 		
-		double[] weights = new double[15];
+		double[] weights = new double[1000];
 		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
 		ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
 		
-		for(int i=0; i<15; i++) {
-		    if(i<15){
+		for(int i=0; i<1000; i++) {
+		    if(i<100){
 			double d1 = StdRandom.gaussian(2, 1);
 			double d2 = StdRandom.gaussian(2, 1);
-			double d3 = StdRandom.gaussian(2, 1);
-			double[][] mean = {{d1},{d2},{d3}};
+			double[][] mean = {{d1},{d2}};
 			means.add(new SimpleMatrix(mean));
-			double[][] c = {{0.0,0.0,0.0}, {0.0,0.0,0.0}, {0.0,0.0,0.0}};
+			double[][] c = {{0.0,0.0}, {0.0,0.0}};
 			cov1.add(new SimpleMatrix(c));
 			weights[i] = 1d;
 		    }else if(i<10){
@@ -157,7 +156,7 @@ public class test {
 		}
 		
         	// define your data
-        	/*double[] x = new double[100];
+        	double[] x = new double[100];
         	double[] y = new double[100];
         	double coord = 0;
         	for(int i=0; i<100; i++) {
@@ -182,7 +181,8 @@ public class test {
         	JFrame frame = new JFrame("a plot panel");
         	frame.setSize(600, 600);
         	frame.setContentPane(plot);
-        	frame.setVisible(true);*/
+        	frame.setVisible(true);
+        	
         
         	// double I = SampleDist.getIntSquaredHessian(mu, w, cov, g);
 		
