@@ -103,14 +103,23 @@ public class test {
 		weights[9] = 1d;*/
 		
 		
-		double[] weights = new double[1000];
+		double[] weights = new double[15];
 		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
 		ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
 		
-		for(int i=0; i<1000; i++) {
-		    if(true){
-			double d1 = StdRandom.gaussian(2, 0.5);
-			double d2 = StdRandom.gaussian(2, 0.5);
+		for(int i=0; i<15; i++) {
+		    if(i<15){
+			double d1 = StdRandom.gaussian(2, 1);
+			double d2 = StdRandom.gaussian(2, 1);
+			double d3 = StdRandom.gaussian(2, 1);
+			double[][] mean = {{d1},{d2},{d3}};
+			means.add(new SimpleMatrix(mean));
+			double[][] c = {{0.0,0.0,0.0}, {0.0,0.0,0.0}, {0.0,0.0,0.0}};
+			cov1.add(new SimpleMatrix(c));
+			weights[i] = 1d;
+		    }else if(i<10){
+			double d1 = StdRandom.gaussian(2, 1);
+			double d2 = StdRandom.gaussian(7, 1);
 			double[][] mean = {{d1},{d2}};
 			means.add(new SimpleMatrix(mean));
 			double[][] c = {{0.0,0.0}, {0.0,0.0}};
@@ -118,7 +127,7 @@ public class test {
 			weights[i] = 1d;
 		    }else{
 			double d1 = StdRandom.gaussian(7, 1);
-			double d2 = StdRandom.gaussian(7, 1);
+			double d2 = StdRandom.gaussian(2, 1);
 			double[][] mean = {{d1},{d2}};
 			means.add(new SimpleMatrix(mean));
 			double[][] c = {{0.0,0.0}, {0.0,0.0}};
@@ -148,7 +157,7 @@ public class test {
 		}
 		
         	// define your data
-        	double[] x = new double[100];
+        	/*double[] x = new double[100];
         	double[] y = new double[100];
         	double coord = 0;
         	for(int i=0; i<100; i++) {
@@ -173,7 +182,7 @@ public class test {
         	JFrame frame = new JFrame("a plot panel");
         	frame.setSize(600, 600);
         	frame.setContentPane(plot);
-        	frame.setVisible(true);
+        	frame.setVisible(true);*/
         
         	// double I = SampleDist.getIntSquaredHessian(mu, w, cov, g);
 		
@@ -216,13 +225,15 @@ public class test {
               Writer bw = new BufferedWriter( fw );
               pw = new PrintWriter( bw );
               pw.print("[");
-              for (SimpleMatrix m : data)
-                pw.print(m.get(0, 0)+" ");
-              pw.print(";");
-              for (SimpleMatrix m : data)
-                  pw.print(m.get(1, 0)+" ");
+              for(int i=0; i<data.get(0).numRows(); i++) {
+                  for (SimpleMatrix m : data)
+                      pw.print(m.get(i, 0)+" ");
+                  if(i<(data.get(0).numRows()-1))
+                      pw.print(";");
+              }
               pw.print("]");
             }
+              
             catch ( IOException e ) {
               System.err.println( "Error creating file!" );
             }

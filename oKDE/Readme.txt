@@ -1,0 +1,1 @@
+ EJML has to be compiled with target="1.6" in javac-tag in build.xml

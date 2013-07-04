@@ -421,6 +421,24 @@ public class SampleDist {
 
 	return I;
     }
+    
+    public double calculateY(double[] x, SampleDist dist,
+	    ArrayList<SimpleMatrix> means) {
+	SimpleMatrix bandwidth = dist.getmBandwidthMatrix();
+	double[][] dxVector = { x };
+	SimpleMatrix xVector = new SimpleMatrix(dxVector);
+	double d = 0d;
+	double n = means.size();
+	for (SimpleMatrix m : means) {
+	    double tmp = (-0.5d)
+		    * xVector.minus(m).transpose().mult(bandwidth.invert())
+			    .mult(xVector.minus(m)).trace();
+	    double powPi = Math.pow(4*Math.PI, xVector.numRows());
+	    d += ((1 / Math.sqrt(powPi
+		    * bandwidth.determinant())) * Math.exp(tmp));
+	}
+	return d / n;
+    }
 
     /*
      * FASTER VERSION? private double getIntSquaredHessian(double[] muValues,
