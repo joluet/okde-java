@@ -23,13 +23,13 @@ public class MomentMatcher {
     public static void matchMoments(SampleDist distribution)
 	    throws EmptyDistributionException {
 	// Array of covariance matrices of components
-	ArrayList<SimpleMatrix> smCovariances = distribution.getCovariances();
+	ArrayList<SimpleMatrix> smCovariances = distribution.getSubCovariances();
 
 	// Array of mean vectors of components
-	ArrayList<SimpleMatrix> smMeans = distribution.getMeans();
+	ArrayList<SimpleMatrix> smMeans = distribution.getSubMeans();
 
 	// Array of component weights of components
-	ArrayList<Double> smWeights = distribution.getWeights();
+	ArrayList<Double> smWeights = distribution.getSubWeights();
 
 	// if the given distribution has only one component
 	// just return empty covariance
