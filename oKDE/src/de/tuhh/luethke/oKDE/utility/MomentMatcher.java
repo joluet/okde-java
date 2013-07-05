@@ -14,20 +14,22 @@ public class MomentMatcher {
      * covariance) of this distribution to generate a single component
      * distribution.
      * 
-     * @param subMixture
-     * @return {@link SampleDist}
+     * The results are written to the the given distribution using
+     * setGlobalCovariance, setGlobalMean, setWeightSum.
+     * 
+     * @param distribution
      * @throws EmptyDistributionException
      */
-    public static SampleDist matchMoments(SampleDist subMixture)
+    public static void matchMoments(SampleDist distribution)
 	    throws EmptyDistributionException {
 	// Array of covariance matrices of components
-	ArrayList<SimpleMatrix> smCovariances = subMixture.getCovariances();
+	ArrayList<SimpleMatrix> smCovariances = distribution.getCovariances();
 
 	// Array of mean vectors of components
-	ArrayList<SimpleMatrix> smMeans = subMixture.getMeans();
+	ArrayList<SimpleMatrix> smMeans = distribution.getMeans();
 
 	// Array of component weights of components
-	ArrayList<Double> smWeights = subMixture.getWeights();
+	ArrayList<Double> smWeights = distribution.getWeights();
 
 	// if the given distribution has only one component
 	// just return empty covariance
@@ -36,11 +38,10 @@ public class MomentMatcher {
 	    SimpleMatrix newCovariance = null;
 	    if (smCovariances.size() > 0)
 		newCovariance = smCovariances.get(0);
-	    ArrayList<SimpleMatrix> newMeans = new ArrayList<SimpleMatrix>();
-	    newMeans.add(newMean);
-	    ArrayList<SimpleMatrix> newCovariances = new ArrayList<SimpleMatrix>();
-	    newCovariances.add(newCovariance);
-	    return new SampleDist(smWeights, newMeans, newCovariances);
+	    distribution.setGlobalCovariance(newCovariance);
+	    distribution.setGlobalMean(newMean);
+	    distribution.setWeightSum(smWeights.get(0)); 
+	    return;
 	}
 
 	// calculate new weight
@@ -68,16 +69,9 @@ public class MomentMatcher {
 	SimpleMatrix dyadNewMean = newMean.mult(newMean.transpose());
 	newCovariance = newCovariance.minus(dyadNewMean);
 
-	// create new sample distribution from calculated parameters
-	ArrayList<Double> newWeights = new ArrayList<Double>();
-	newWeights.add(newWeight);
-	ArrayList<SimpleMatrix> newMeans = new ArrayList<SimpleMatrix>();
-	newMeans.add(newMean);
-	ArrayList<SimpleMatrix> newCovariances = new ArrayList<SimpleMatrix>();
-	newCovariances.add(newCovariance);
-	SampleDist matched = new SampleDist(newWeights, newMeans,
-		newCovariances);
-
-	return matched;
+	// set calculated parameters to distribution
+	distribution.setGlobalCovariance(newCovariance);
+	distribution.setGlobalMean(newMean);
+	distribution.setWeightSum(newWeight); 
     }
 }

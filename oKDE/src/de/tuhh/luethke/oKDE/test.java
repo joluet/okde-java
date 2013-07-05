@@ -16,6 +16,7 @@ import org.math.plot.Plot3DPanel;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.utility.Projector;
 
 public class test {
 
@@ -54,6 +55,16 @@ public class test {
 		}*/
 		System.out.println("---------------------------------------");
 		dist = new SampleDist();
+		double[][] c = {{0.1,1.1}, {2.0,1.0}};
+		SimpleMatrix cov = new SimpleMatrix(c);
+		dist.setGlobalCovariance(cov);
+		dist.setmBandwidthMatrix(cov);
+		try {
+		    Projector.projectSampleDistToSubspace(dist);
+		} catch (EmptyDistributionException e) {
+		    // TODO Auto-generated catch block
+		    e.printStackTrace();
+		}
 		/*ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
 		double[][] c = {{0.0,0.0}, {0.0,0.0}};
 		cov1.add(new SimpleMatrix(c));
@@ -103,11 +114,11 @@ public class test {
 		weights[9] = 1d;*/
 		
 		
-		double[] weights = new double[1000];
+		/*double[] weights = new double[15];
 		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
 		ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
 		
-		for(int i=0; i<1000; i++) {
+		for(int i=0; i<15; i++) {
 		    if(i<100){
 			double d1 = StdRandom.gaussian(2, 1);
 			double d2 = StdRandom.gaussian(2, 1);
@@ -134,7 +145,9 @@ public class test {
 			weights[i] = 1d;
 		    }
 		}
-		dataToFile(means);
+		dataToFile(means);*/
+		
+		
 		/*means = readFromFile();
 		for(int i=0; i<1000; i++) {
 		    double[][] c = {{0.0,0.0}, {0.0,0.0}};
@@ -148,7 +161,7 @@ public class test {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
 		}*/
-		try {
+		/*try {
 		    dist.updateDistribution(means.toArray(new SimpleMatrix[0]), cov1.toArray(new SimpleMatrix[0]), weights);
 		} catch (EmptyDistributionException e) {
 		    // TODO Auto-generated catch block
@@ -181,7 +194,7 @@ public class test {
         	JFrame frame = new JFrame("a plot panel");
         	frame.setSize(600, 600);
         	frame.setContentPane(plot);
-        	frame.setVisible(true);
+        	frame.setVisible(true);*/
         	
         
         	// double I = SampleDist.getIntSquaredHessian(mu, w, cov, g);

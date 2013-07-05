@@ -27,20 +27,36 @@ public class SampleDist {
 
     // component weights
     private ArrayList<Double> mWeights;
+    
+    // overall weight sum
+    private double mWeightSum;
+    
+    // overall mean
+    private SimpleMatrix mGlobalMean;
 
     // overall covariance
-    private SimpleMatrix mCovariance;
+    private SimpleMatrix mGlobalCovariance;
 
     // overall covariance in subspace
-    private SimpleMatrix mSubspaceCovariance;
+    private SimpleMatrix mSubspaceGlobalCovariance;
 
     // overall inverse covariance in subspace
     private SimpleMatrix mSubspaceInverseCovariance;
 
     // subspace: row/column ids
     private ArrayList<Integer> mSubspace;
+    
+    // sub component distributions
+    private ArrayList<SampleDist> mSubDistributions;
 
-    private double mWeightSum;
+
+    public ArrayList<SampleDist> getSubDistributions() {
+        return mSubDistributions;
+    }
+
+    public void setSubDistributions(ArrayList<SampleDist> subDistributions) {
+        this.mSubDistributions = subDistributions;
+    }
 
     private double mForgettingFactor;
 
@@ -110,10 +126,10 @@ public class SampleDist {
 	Double[] weights = getWeights().toArray(new Double[0]);
 
 	// get empirical sample covariance by moment matching
-	SimpleMatrix covSmpl = projectToSubspace(this);
+	projectToSubspace(this);
 	// reestimate bandwidth as explained in oKDE paper
 	double bandwidth = reestimateBandwidth(this.getMeans().toArray(new SimpleMatrix[0]), this.getCovariances().toArray(new SimpleMatrix[0]), weights,
-		covSmpl, mN_eff);
+		getSubspaceGlobalCovariance(), mN_eff);
 	this.setmBandwidthFactor(bandwidth);
 	// project Bandwidth into original space
 	SimpleMatrix bandwidthMatrix = projectBandwidthToOriginalSpace(this);
@@ -182,9 +198,9 @@ public class SampleDist {
     public static SimpleMatrix projectBandwidthToOriginalSpace(
 	    SampleDist distribution) {
 	SimpleMatrix bandwidth = SimpleMatrix.identity(distribution
-		.getmCovariance().numCols());
+		.getGlobalCovariance().numCols());
 	// SimpleMatrix distribution
-	SimpleMatrix subSpaceBandwidth = distribution.getmSubspaceCovariance()
+	SimpleMatrix subSpaceBandwidth = distribution.getSubspaceGlobalCovariance()
 		.scale(Math.pow(distribution.getmBandwidthFactor(), 2));
 	ArrayList<Integer> subspace = distribution.getmSubspace();
 	for (int i = 0; i < subSpaceBandwidth.numRows(); i++) {
@@ -218,15 +234,14 @@ public class SampleDist {
 	this.mBandwidthMatrix = mBandwidthMatrix;
     }
 
-    public static SimpleMatrix projectToSubspace(SampleDist distribution)
+    public static void projectToSubspace(SampleDist distribution)
 	    throws EmptyDistributionException {
 	double minBW = 1e-7;
 	ArrayList<Integer> subSpace = new ArrayList<Integer>();
-	SampleDist subSpaceDist = MomentMatcher.matchMoments(distribution);
+	MomentMatcher.matchMoments(distribution);
 	//system.out.println(subSpaceDist.getMeans().get(0));
-	SimpleMatrix overallCovariance = subSpaceDist.getCovariances().get(0);
+	SimpleMatrix overallCovariance = distribution.getGlobalCovariance();
 	//system.out.println("cov: " + overallCovariance);
-	distribution.setmCovariance(overallCovariance);
 	SimpleSVD svd = overallCovariance.svd(true);
 	SimpleMatrix U = svd.getU();
 	SimpleMatrix S = svd.getW();
@@ -272,10 +287,10 @@ public class SampleDist {
 	}
 	////system.out.println(iF);
 	SimpleMatrix subspaceCov = F.transpose().mult(overallCovariance).mult(F);
-	distribution.setmSubspaceCovariance(subspaceCov);
+	distribution.setSubspaceGlobalCovariance(subspaceCov);
 	
 	ArrayList<SimpleMatrix> originalMeans = distribution.getMeans();
-	SimpleMatrix subspaceMean = subSpaceDist.getMeans().get(0);
+	SimpleMatrix subspaceMean = distribution.getGlobalMean();
 	for(int i=0; i<originalMeans.size(); i++){
 	    originalMeans.set(i, originalMeans.get(i).minus(subspaceMean));
 	}
@@ -291,7 +306,6 @@ public class SampleDist {
 	distribution.setmSubspace(subSpace);
 	////system.out.println("Array: "+distribution.getmSubspace());
 
-	return subspaceCov;
     }
 
     public ArrayList<Integer> getmSubspace() {
@@ -302,20 +316,24 @@ public class SampleDist {
 	this.mSubspace = mSubspace;
     }
 
-    public SimpleMatrix getmCovariance() {
-	return mCovariance;
+    public SimpleMatrix getGlobalCovariance() {
+	return mGlobalCovariance;
     }
 
-    public void setmCovariance(SimpleMatrix mCovariance) {
-	this.mCovariance = mCovariance;
+    public void setGlobalCovariance(SimpleMatrix globalCovariance) {
+	this.mGlobalCovariance = globalCovariance;
     }
 
-    public SimpleMatrix getmSubspaceCovariance() {
-	return mSubspaceCovariance;
+    public SimpleMatrix getSubspaceGlobalCovariance() {
+	return mSubspaceGlobalCovariance;
     }
 
-    public void setmSubspaceCovariance(SimpleMatrix mSubspaceCovariance) {
-	this.mSubspaceCovariance = mSubspaceCovariance;
+    public void setWeightSum(double weightSum) {
+        this.mWeightSum = weightSum;
+    }
+
+    public void setSubspaceGlobalCovariance(SimpleMatrix mSubspaceCovariance) {
+	this.mSubspaceGlobalCovariance = mSubspaceCovariance;
     }
 
     public SimpleMatrix getmSubspaceInverseCovariance() {
@@ -497,4 +515,12 @@ public class SampleDist {
     public void setWeights(ArrayList<Double> weights) {
 	this.mWeights = weights;
     }
+    public SimpleMatrix getGlobalMean() {
+        return mGlobalMean;
+    }
+
+    public void setGlobalMean(SimpleMatrix globalMean) {
+        this.mGlobalMean = globalMean;
+    }
+
 }
