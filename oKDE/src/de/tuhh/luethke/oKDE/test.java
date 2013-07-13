@@ -28,19 +28,38 @@ public class test {
 		SampleDist dist = new SampleDist();
 		
 		System.out.println("Test intsqrd");
-		double[][] dMu = {{1.18835013453899,0.0698038241915721,-1.25815395873056},{0.766696783442554,-1.41248979682270,0.645793013380147}};
 		
 		
-		
+		//double[][] dMu = {{1.18835013453899,0.0698038241915721,-1.25815395873056},{0.766696783442554,-1.41248979682270,0.645793013380147}};
+		double[][] mean1 = {{1},{1}};
+		double[][] mean2 = {{1},{1}};
+		double[][] mean3 = {{1.5},{1}};
+		double[][] mean4 = {{1.5},{1.5}};
+		double[][] mean5 = {{5},{5}};
+		double[][] mean6 = {{5.5},{5.5}};
+		double[][] mean7 = {{4.5},{4.5}};
 		/*
-		SimpleMatrix mu = new SimpleMatrix(dMu);
-		SimpleMatrix[] mus = {mu};
-		double[] w= {0.333333333333333,0.333333333333333,0.333333333333333};
+		double[][] mean7 = {{5},{4.5}};
+		double[][] mean8 = {{4.5},{5}};
+		double[][] mean9 = {{5},{5}};
+		double[][] mean10 = {{5},{5}};*/
+		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
+		means.add(new SimpleMatrix(mean1));
+		means.add(new SimpleMatrix(mean2));
+		means.add(new SimpleMatrix(mean3));
+		means.add(new SimpleMatrix(mean4));
+		means.add(new SimpleMatrix(mean5));
+		means.add(new SimpleMatrix(mean6));
+		means.add(new SimpleMatrix(mean7));
+		
+		//SimpleMatrix mu = new SimpleMatrix(dMu);
+		//SimpleMatrix[] mus = {mu};
+		double[] w= {1,1,1};
 		double[][] c = {{0.0,0.0}, {0.0,0.0}};
-		SimpleMatrix[] cov = {new SimpleMatrix(c), new SimpleMatrix(c), new SimpleMatrix(c)};
+		SimpleMatrix[] cov = {new SimpleMatrix(c),new SimpleMatrix(c),new SimpleMatrix(c)};
 		//double[][] dG = {{0.693361274350635,0.0}, {0.0,0.693361274350635}};
 		//SimpleMatrix g = new SimpleMatrix(dG);
-		System.out.println(mu);
+		//System.out.println(mu);
 		System.out.println(cov[0]);
 		//System.out.println(g);
 		double[][] cov_smp = {{1,0.0}, {0.0,1}};
@@ -48,17 +67,47 @@ public class test {
 		System.out.println(Cov_smp);
 
 		try {
-		    dist.updateDistribution(mus, cov, w);
+			means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean1));
+			means.add(new SimpleMatrix(mean2));
+			means.add(new SimpleMatrix(mean3));
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov, w);
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean4));
+			double[] w1= {1};
+			SimpleMatrix[] cov1 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov1, w1);
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean5));
+			double[] w2= {1};
+			SimpleMatrix[] cov2 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov2, w2);
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean6));
+			double[] w3= {1};
+			SimpleMatrix[] cov3 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov3, w3);
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean7));
+			double[] w4= {1};
+			SimpleMatrix[] cov4 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov4, w4);
+
 		} catch (EmptyDistributionException e) {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
-		}*/
+		}
 		System.out.println("---------------------------------------");
-		dist = new SampleDist();
+		/*dist = new SampleDist();
 		double[][] c = {{0.1,1.1}, {2.0,1.0}};
 		SimpleMatrix cov = new SimpleMatrix(c);
 		dist.setGlobalCovariance(cov);
-		dist.setmBandwidthMatrix(cov);
+		dist.setmBandwidthMatrix(cov);*/
+		System.out.println("BW"+dist.getmBandwidthMatrix());
+
+		/*for(int i=0; i<dist.getSubCovariances().size(); i++){
+			dist.setGlobalCovariance(new SimpleMatrix(dist.getmBandwidthMatrix()));
+		}*/
 		try {
 		    Projector.projectSampleDistToSubspace(dist);
 		} catch (EmptyDistributionException e) {
@@ -113,8 +162,8 @@ public class test {
 		weights[8] = 1d;
 		weights[9] = 1d;*/
 		
-		
-		/*double[] weights = new double[15];
+		/*
+		double[] weights = new double[15];
 		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
 		ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
 		
@@ -166,10 +215,10 @@ public class test {
 		} catch (EmptyDistributionException e) {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
-		}
+		}*/
 		
         	// define your data
-        	double[] x = new double[100];
+        	/*double[] x = new double[100];
         	double[] y = new double[100];
         	double coord = 0;
         	for(int i=0; i<100; i++) {

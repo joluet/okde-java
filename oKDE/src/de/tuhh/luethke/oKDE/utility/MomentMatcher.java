@@ -33,6 +33,9 @@ public class MomentMatcher {
 
 	// if the given distribution has only one component
 	// just return empty covariance
+	if (smWeights.size() == 0) {
+	    return;
+	}
 	if (smWeights.size() == 1) {
 	    SimpleMatrix newMean = smMeans.get(0);
 	    SimpleMatrix newCovariance = null;
@@ -68,7 +71,9 @@ public class MomentMatcher {
 	newCovariance = newCovariance.scale(1 / newWeight);
 	SimpleMatrix dyadNewMean = newMean.mult(newMean.transpose());
 	newCovariance = newCovariance.minus(dyadNewMean);
-
+	System.out.println("matching moments");
+	System.out.println(newCovariance);
+	System.out.println(newMean);
 	// set calculated parameters to distribution
 	distribution.setGlobalCovariance(newCovariance);
 	distribution.setGlobalMean(newMean);
