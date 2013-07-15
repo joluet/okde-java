@@ -27,6 +27,9 @@ public class SampleDist {
 
 	// overall covariance
 	private SimpleMatrix mGlobalCovariance;
+	
+	// overall covariance plus bandwidth
+	private SimpleMatrix mGlobalCovarianceSmoothed;
 
 	// overall covariance in subspace
 	private SimpleMatrix mSubspaceGlobalCovariance;
@@ -131,15 +134,7 @@ public class SampleDist {
 		// TODO: WORKAROUND!!! in original implementation there are always two
 		// covariances: cov1=cov+H
 		// subtract BW from subCovariances
-		ArrayList<SimpleMatrix> tmpSubCovs = new ArrayList<SimpleMatrix>();
-		if (mBandwidthMatrix != null) {
-			for (int i = 0; i < this.getSubCovariances().size(); i++) {
-				tmpSubCovs.add(i, this.getSubCovariances().get(i).scale(0));
-			}
-			this.setSubCovariances(tmpSubCovs);
-		} else
-			tmpSubCovs = this.getSubCovariances();
-
+		
 		// get empirical sample covariance by moment matching
 		// SampleDist tmp = this.;
 		SampleDist subSpaceDist = projectToSubspace(this);
@@ -151,13 +146,10 @@ public class SampleDist {
 		subSpaceDist.setmBandwidthFactor(bandwidth);
 		// project Bandwidth into original space
 		SimpleMatrix bandwidthMatrix = projectBandwidthToOriginalSpace(subSpaceDist);
-		this.setmBandwidthMatrix(bandwidthMatrix);
-		ArrayList<SimpleMatrix> newSubCovs = new ArrayList<SimpleMatrix>();
-		for (int i = 0; i < this.getSubCovariances().size(); i++) {
-			SimpleMatrix cov = getSubCovariances().get(i);
-			newSubCovs.add(new SimpleMatrix(bandwidthMatrix));
+		this.mBandwidthMatrix = bandwidthMatrix;
+		for (int i = 0; i < this.getSubDistributions().size(); i++) {
+			this.getSubDistributions().get(i).setmBandwidthMatrix(bandwidthMatrix);
 		}
-		this.setSubCovariances(newSubCovs);
 		System.out.println("BW: " + bandwidthMatrix);
 		System.out.println(bandwidthMatrix.get(0, 0) + " " + bandwidthMatrix.get(1, 1));
 		if (mGlobalCovariance == null) {
@@ -250,6 +242,10 @@ public class SampleDist {
 	}
 
 	public void setmBandwidthMatrix(SimpleMatrix mBandwidthMatrix) {
+		//if(this.mGlobalCovarianceSmoothed == null)
+			this.mGlobalCovarianceSmoothed = new SimpleMatrix(mBandwidthMatrix);
+		//else
+		//	this.mGlobalCovarianceSmoothed = this.mGlobalCovarianceSmoothed.plus(mBandwidthMatrix);
 		this.mBandwidthMatrix = mBandwidthMatrix;
 	}
 
@@ -338,6 +334,21 @@ public class SampleDist {
 			mSubDistributions.get(i).setGlobalCovariance(covariances.get(i));
 		}
 	}
+	
+	public ArrayList<SimpleMatrix> getSubSmoothedCovariances() {
+		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
+		for (SampleDist d : mSubDistributions)
+			covs.add(d.getmGlobalCovarianceSmoothed());
+		return covs;
+	}
+
+	public SimpleMatrix getmGlobalCovarianceSmoothed() {
+		return mGlobalCovarianceSmoothed;
+	}
+
+	public void setmGlobalCovarianceSmoothed(SimpleMatrix mGlobalCovarianceSmoothed) {
+		this.mGlobalCovarianceSmoothed = mGlobalCovarianceSmoothed;
+	}
 
 	public ArrayList<SimpleMatrix> getSubMeans() {
 		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
@@ -419,7 +430,6 @@ public class SampleDist {
 	}
 
 	private double getIntSquaredHessian(SimpleMatrix[] means, Double[] weights, SimpleMatrix[] covariance, SimpleMatrix F, SimpleMatrix g) {
-
 		long d = means[0].numRows();
 		long N = means.length;
 		// system.out.println("d:" + d);

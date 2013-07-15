@@ -24,12 +24,10 @@ public class Projector {
 		int d = globalCov.numCols();
 		// calculate eigen directions --> determine the subspace
 		SimpleSVD svd = globalCov.svd(true);
-		double[][] data = { { -0.696148448325867, -0.717897860348871 }, { -0.717897860348871, 0.696148448325867 } };
-		SimpleMatrix U = new SimpleMatrix(data);// svd.getU();
-		double[][] data1 = { { 10.092428727058593, 0 }, { 0, 0.018741000612343 } };
-		SimpleMatrix S = new SimpleMatrix(data1);// svd.getW();
+		SimpleMatrix U = svd.getU();
+		SimpleMatrix S = svd.getW();
 		System.out.println("S" + S);
-		SimpleMatrix V = new SimpleMatrix(data);// svd.getV();
+		SimpleMatrix V = svd.getV();
 
 		V = U;
 
@@ -76,7 +74,7 @@ public class Projector {
 		List<SampleDist> subDistributions = distribution.getSubDistributions();
 		for (int i = 0; i < subDistributions.size(); i++) {
 			List<SimpleMatrix> subSubMeans = subDistributions.get(i).getSubMeans();
-			List<SimpleMatrix> subSubCovs = subDistributions.get(i).getSubCovariances();
+			List<SimpleMatrix> subSubCovs = subDistributions.get(i).getSubSmoothedCovariances();
 			if(subSubMeans.size() > 0)
 				for (int j = 0; j < subSubMeans.size(); j++) {
 					subSubCovs.set(j, transformMatrix(trnsF, subSubCovs.get(j), validElements, countValidElements));
@@ -87,14 +85,14 @@ public class Projector {
 				}
 			else {
 				SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();
-				SimpleMatrix subCov = subDistributions.get(i).getGlobalCovariance();
+				SimpleMatrix subCov = subDistributions.get(i).getmGlobalCovarianceSmoothed();
 				SimpleMatrix tmp = trnsF.mult(subMean.minus(globalMean));
 				tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements));
 				subDistributions.get(i).setGlobalMean(tmp);
 				subDistributions.get(i).setGlobalCovariance(transformMatrix(trnsF, subCov, validElements, countValidElements));
 			}
 			MomentMatcher.matchMoments(subDistributions.get(i));
-			SimpleMatrix subCov = subDistributions.get(i).getGlobalCovariance();
+			SimpleMatrix subCov = subDistributions.get(i).getmGlobalCovarianceSmoothed();
 			subDistributions.get(i).setGlobalCovariance(subCov.plus(trnsBandwidthMatrix));
 		}
 		/*% transform also the global covariance
