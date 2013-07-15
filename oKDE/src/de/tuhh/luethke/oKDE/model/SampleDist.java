@@ -128,23 +128,46 @@ public class SampleDist {
 		for (int i = 0; i < subDists.size(); i++)
 			weights[i] = subDists.get(i).getWeightSum();
 
+		// TODO: WORKAROUND!!! in original implementation there are always two
+		// covariances: cov1=cov+H
+		// subtract BW from subCovariances
+		ArrayList<SimpleMatrix> tmpSubCovs = new ArrayList<SimpleMatrix>();
+		if (mBandwidthMatrix != null) {
+			for (int i = 0; i < this.getSubCovariances().size(); i++) {
+				tmpSubCovs.add(i, this.getSubCovariances().get(i).scale(0));
+			}
+			this.setSubCovariances(tmpSubCovs);
+		} else
+			tmpSubCovs = this.getSubCovariances();
+
 		// get empirical sample covariance by moment matching
 		// SampleDist tmp = this.;
 		SampleDist subSpaceDist = projectToSubspace(this);
 		// reestimate bandwidth as explained in oKDE paper
+
 		double bandwidth = reestimateBandwidth(subSpaceDist.getSubMeans().toArray(new SimpleMatrix[0]),
 				subSpaceDist.getSubCovariances().toArray(new SimpleMatrix[0]), weights, subSpaceDist.getSubspaceGlobalCovariance(), mN_eff);
-		System.out.println("BANDW"+bandwidth);
+		System.out.println("BANDW" + bandwidth);
 		subSpaceDist.setmBandwidthFactor(bandwidth);
 		// project Bandwidth into original space
 		SimpleMatrix bandwidthMatrix = projectBandwidthToOriginalSpace(subSpaceDist);
 		this.setmBandwidthMatrix(bandwidthMatrix);
-		for(int i=0; i<this.getSubCovariances().size(); i++){
+		ArrayList<SimpleMatrix> newSubCovs = new ArrayList<SimpleMatrix>();
+		for (int i = 0; i < this.getSubCovariances().size(); i++) {
 			SimpleMatrix cov = getSubCovariances().get(i);
-			this.getSubCovariances().set(i, cov.plus(bandwidthMatrix));
+			newSubCovs.add(new SimpleMatrix(bandwidthMatrix));
 		}
+		this.setSubCovariances(newSubCovs);
 		System.out.println("BW: " + bandwidthMatrix);
 		System.out.println(bandwidthMatrix.get(0, 0) + " " + bandwidthMatrix.get(1, 1));
+		if (mGlobalCovariance == null) {
+			mGlobalCovariance = new SimpleMatrix(2, 2);
+			System.out.println("globcov null");
+		}
+		/*
+		 * mGlobalCovariance = mGlobalCovariance.plus(mBandwidthMatrix);
+		 * System.out.println("GLOBCOV"+mGlobalCovariance);
+		 */
 	}
 
 	private void checkInputParams(SimpleMatrix[] means, SimpleMatrix[] covariances, double[] weights) throws EmptyDistributionException {
@@ -378,12 +401,12 @@ public class SampleDist {
 		double d = means[0].numRows();
 
 		// Silverman
-		//SimpleMatrix G = Cov_smp.scale(Math.pow((4 / ((d + 2) * N_eff)), (2 / (d + 4))));
+		// SimpleMatrix G = Cov_smp.scale(Math.pow((4 / ((d + 2) * N_eff)), (2 /
+		// (d + 4))));
 
 		// other
-		//Cov_smp *(2/(2+d))^(2/(4+d)) * 4 *N_eff^(-2/(4+d))
-		 SimpleMatrix G = Cov_smp.scale(Math.pow((2d / (d + 2d) ),
-				 (2d / (d + 4d)) ) * 4 * Math.pow(N_eff,-2d/(4d+d)) );
+		// Cov_smp *(2/(2+d))^(2/(4+d)) * 4 *N_eff^(-2/(4+d))
+		SimpleMatrix G = Cov_smp.scale(Math.pow((2d / (d + 2d)), (2d / (d + 4d))) * 4 * Math.pow(N_eff, -2d / (4d + d)));
 
 		float alphaScale = 1;
 		SimpleMatrix F = Cov_smp.scale(alphaScale);
