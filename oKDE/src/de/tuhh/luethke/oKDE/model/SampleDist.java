@@ -79,12 +79,19 @@ public class SampleDist {
 		mWeightSum = w;
 		mGlobalMean = mean;
 		mGlobalCovariance = covariance;
-		mGlobalCovarianceSmoothed = new SimpleMatrix(covariance);
+		//initialize smoothed covariance to zero
+		mGlobalCovarianceSmoothed = new SimpleMatrix(covariance).scale(0);
+		//initialize bandwidth matrix to zero
+		mBandwidthMatrix = new SimpleMatrix(covariance).scale(0);
 		mN_eff = 0;
 		mForgettingFactor = 1;
 		mSubDistributions = new ArrayList<SampleDist>();
 	}
 
+	/**
+	 * Copy constructor
+	 * @param dist
+	 */
 	public SampleDist(SampleDist dist) {
 		List<SampleDist> subDists = dist.getSubDistributions();
 		ArrayList<SampleDist> copy = new ArrayList<SampleDist>();
@@ -102,8 +109,6 @@ public class SampleDist {
 		this.mSubspaceInverseCovariance = dist.getmSubspaceInverseCovariance();
 		this.mWeightSum = dist.getWeightSum();
 		this.mN_eff = dist.getNeff();
-
-		// dist.setSubCovariances();
 	}
 
 	/**
@@ -129,12 +134,6 @@ public class SampleDist {
 		for (int i = 0; i < subDists.size(); i++)
 			weights[i] = subDists.get(i).getWeightSum();
 
-		// TODO: WORKAROUND!!! in original implementation there are always two
-		// covariances: cov1=cov+H
-		// subtract BW from subCovariances
-		
-		// get empirical sample covariance by moment matching
-		// SampleDist tmp = this.;
 		SampleDist subSpaceDist = projectToSubspace(this);
 		// reestimate bandwidth as explained in oKDE paper
 

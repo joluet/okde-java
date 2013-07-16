@@ -9,11 +9,24 @@ import org.ejml.simple.SimpleSVD;
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.SampleDist;
 
+/**
+ * This class transforms a sample distribution that is lying in a degenerate space
+ * into the non-degenerate subspace by projecting 
+ * 
+ * @author Jonas Luethke
+ *
+ */
 public class Projector {
 	private static final double MIN_VALUE = 1E-7d;
 
 	private static final double CONST_SMALL_FACTOR = 1E-10d;
-
+	
+	/**
+	 * Forward transform a sample distribution
+	 * 
+	 * @param distribution
+	 * @throws EmptyDistributionException
+	 */
 	public static void projectSampleDistToSubspace(SampleDist distribution) throws EmptyDistributionException {
 		MomentMatcher.matchMoments(distribution, true);
 		SimpleMatrix globalCov = distribution.getGlobalCovariance();
@@ -38,6 +51,7 @@ public class Projector {
 		int countValidElements = 0;
 		boolean isCompletelySingular = false;
 		SimpleMatrix invS = null;
+		// if S is almost zero --> singular
 		if (s.elementMaxAbs() < MIN_VALUE || Double.isNaN(s.elementSum())) {
 			S = SimpleMatrix.identity(S.numCols()).transpose();
 			invS = SimpleMatrix.identity(d).scale(2d / MIN_VALUE);
@@ -46,7 +60,8 @@ public class Projector {
 			countValidElements = validElements.length;
 			isCompletelySingular = true;
 		} else {
-
+			// if S ins not completely singular: check what elements are >0
+			// store them in validElements
 			for (int i = 0; i < validElements.length; i++) {
 				if (s.get(i, 0) > MIN_VALUE) {
 					validElements[i] = 1d;
@@ -55,9 +70,10 @@ public class Projector {
 					validElements[i] = s.get(i, 0);
 			}
 
+			
+			// create inverse matrix of S
 			S = MatrixOps.elemPow(S, -1);
 			invS = SimpleMatrix.identity(d).scale(0);
-
 			for (int i = 0; i < validElements.length; i++) {
 				if (validElements[i] == 1)
 					invS.set(i, i, S.get(i, i));
@@ -94,11 +110,7 @@ public class Projector {
 			SimpleMatrix subCov = subDistributions.get(i).getmGlobalCovarianceSmoothed();
 			subDistributions.get(i).setmGlobalCovarianceSmoothed(subCov.plus(trnsBandwidthMatrix));
 		}
-		/*
-		 * % transform also the global covariance globalCov =
-		 * F_trns*globalCov*F_trns' ; globalCov = globalCov(id_valid, id_valid)
-		 * ;
-		 */
+		// transform also the global covariance
 		globalCov = trnsF.mult(globalCov).mult(globalCov);
 		globalCov = transformMatrix(trnsF, globalCov, validElements, countValidElements);
 		globalCov = globalCov;
