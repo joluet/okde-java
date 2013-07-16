@@ -20,6 +20,7 @@ public class MomentMatcher {
      * @param distribution
      * @throws EmptyDistributionException
      */
+	
     public static void matchMoments(SampleDist distribution, boolean smoothedCovariances)
 	    throws EmptyDistributionException {
 	// Array of covariance matrices of components
