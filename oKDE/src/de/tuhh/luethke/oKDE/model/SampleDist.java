@@ -47,10 +47,6 @@ public class SampleDist {
 		return mSubDistributions;
 	}
 
-	public void setSubDistributions(ArrayList<SampleDist> subDistributions) {
-		this.mSubDistributions = subDistributions;
-	}
-
 	private double mForgettingFactor;
 
 	// effective number of obesverved samples
@@ -564,6 +560,9 @@ public class SampleDist {
 
 	public void setGlobalMean(double nEff) {
 		this.mN_eff = nEff;
+	}
+	public void setSubDistributions(ArrayList<SampleDist> subDistributions) {
+		this.mSubDistributions = subDistributions;
 	}
 
 }
