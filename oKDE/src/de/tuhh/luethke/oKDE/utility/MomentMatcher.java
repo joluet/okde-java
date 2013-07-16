@@ -20,11 +20,14 @@ public class MomentMatcher {
      * @param distribution
      * @throws EmptyDistributionException
      */
-    public static void matchMoments(SampleDist distribution)
+    public static void matchMoments(SampleDist distribution, boolean smoothedCovariances)
 	    throws EmptyDistributionException {
 	// Array of covariance matrices of components
-	ArrayList<SimpleMatrix> smCovariances = distribution.getSubCovariances();
-
+    	ArrayList<SimpleMatrix> smCovariances;
+    if(smoothedCovariances)
+    	smCovariances = distribution.getSubSmoothedCovariances();
+    else
+    	smCovariances = distribution.getSubCovariances();
 	// Array of mean vectors of components
 	ArrayList<SimpleMatrix> smMeans = distribution.getSubMeans();
 

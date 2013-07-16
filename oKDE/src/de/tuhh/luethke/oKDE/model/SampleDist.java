@@ -83,6 +83,7 @@ public class SampleDist {
 		mWeightSum = w;
 		mGlobalMean = mean;
 		mGlobalCovariance = covariance;
+		mGlobalCovarianceSmoothed = new SimpleMatrix(covariance);
 		mN_eff = 0;
 		mForgettingFactor = 1;
 		mSubDistributions = new ArrayList<SampleDist>();
@@ -95,6 +96,7 @@ public class SampleDist {
 			copy.add(new SampleDist(d));
 		}
 		this.mSubDistributions = copy;
+		this.mGlobalCovarianceSmoothed = dist.getmGlobalCovarianceSmoothed();
 		this.mBandwidthFactor = dist.getmBandwidthFactor();
 		this.mBandwidthMatrix = dist.getmBandwidthMatrix();
 		this.mGlobalCovariance = dist.getGlobalCovariance();
@@ -195,7 +197,7 @@ public class SampleDist {
 		for (int i = 0; i < mSubDistributions.size() - weights.length; i++) {
 			double tmpWeight = mSubDistributions.get(i).getWeightSum();
 			mSubDistributions.get(i).setWeightSum(tmpWeight * mixWeightOld);
-		}
+		} 
 		for (int i = mSubDistributions.size() - weights.length; i < mSubDistributions.size(); i++) {
 			double tmpWeight = mSubDistributions.get(i).getWeightSum();
 			mSubDistributions.get(i).setWeightSum(tmpWeight * mixWeightNew * (1d / weights.length));
@@ -242,10 +244,10 @@ public class SampleDist {
 	}
 
 	public void setmBandwidthMatrix(SimpleMatrix mBandwidthMatrix) {
-		//if(this.mGlobalCovarianceSmoothed == null)
+		if(this.mGlobalCovariance == null)
 			this.mGlobalCovarianceSmoothed = new SimpleMatrix(mBandwidthMatrix);
-		//else
-		//	this.mGlobalCovarianceSmoothed = this.mGlobalCovarianceSmoothed.plus(mBandwidthMatrix);
+		else
+			this.mGlobalCovarianceSmoothed = this.mGlobalCovariance.plus(mBandwidthMatrix);
 		this.mBandwidthMatrix = mBandwidthMatrix;
 	}
 
@@ -253,7 +255,7 @@ public class SampleDist {
 		double minBW = 1e-7;
 		SampleDist distribution = new SampleDist(dist);
 		ArrayList<Integer> subSpace = new ArrayList<Integer>();
-		MomentMatcher.matchMoments(distribution);
+		MomentMatcher.matchMoments(distribution, false);
 		// system.out.println(subSpaceDist.getMeans().get(0));
 		SimpleMatrix overallCovariance = distribution.getGlobalCovariance();
 		// system.out.println("cov: " + overallCovariance);

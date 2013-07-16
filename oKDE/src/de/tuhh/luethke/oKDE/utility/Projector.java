@@ -15,7 +15,7 @@ public class Projector {
 	private static final double CONST_SMALL_FACTOR = 1E-10d;
 
 	public static void projectSampleDistToSubspace(SampleDist distribution) throws EmptyDistributionException {
-		MomentMatcher.matchMoments(distribution);
+		MomentMatcher.matchMoments(distribution, true);
 		SimpleMatrix globalCov = distribution.getGlobalCovariance();
 		SimpleMatrix globalMean = distribution.getGlobalMean();
 		int globalCovSize = globalCov.numRows();
@@ -75,13 +75,12 @@ public class Projector {
 		for (int i = 0; i < subDistributions.size(); i++) {
 			List<SimpleMatrix> subSubMeans = subDistributions.get(i).getSubMeans();
 			List<SimpleMatrix> subSubCovs = subDistributions.get(i).getSubSmoothedCovariances();
-			if(subSubMeans.size() > 0)
+			if (subSubMeans.size() > 0)
 				for (int j = 0; j < subSubMeans.size(); j++) {
 					subSubCovs.set(j, transformMatrix(trnsF, subSubCovs.get(j), validElements, countValidElements));
 					SimpleMatrix tmp = trnsF.mult(subSubMeans.get(i).minus(globalMean));
 					tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements));
 					subSubMeans.set(i, tmp);
-					
 				}
 			else {
 				SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();
@@ -89,15 +88,17 @@ public class Projector {
 				SimpleMatrix tmp = trnsF.mult(subMean.minus(globalMean));
 				tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements));
 				subDistributions.get(i).setGlobalMean(tmp);
-				subDistributions.get(i).setGlobalCovariance(transformMatrix(trnsF, subCov, validElements, countValidElements));
+				subDistributions.get(i).setmGlobalCovarianceSmoothed(transformMatrix(trnsF, subCov, validElements, countValidElements));
 			}
-			MomentMatcher.matchMoments(subDistributions.get(i));
+			MomentMatcher.matchMoments(subDistributions.get(i), true);
 			SimpleMatrix subCov = subDistributions.get(i).getmGlobalCovarianceSmoothed();
-			subDistributions.get(i).setGlobalCovariance(subCov.plus(trnsBandwidthMatrix));
+			subDistributions.get(i).setmGlobalCovarianceSmoothed(subCov.plus(trnsBandwidthMatrix));
 		}
-		/*% transform also the global covariance
-		globalCov = F_trns*globalCov*F_trns' ;
-		globalCov = globalCov(id_valid, id_valid) ;*/
+		/*
+		 * % transform also the global covariance globalCov =
+		 * F_trns*globalCov*F_trns' ; globalCov = globalCov(id_valid, id_valid)
+		 * ;
+		 */
 		globalCov = trnsF.mult(globalCov).mult(globalCov);
 		globalCov = transformMatrix(trnsF, globalCov, validElements, countValidElements);
 		globalCov = globalCov;
