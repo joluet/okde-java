@@ -1,11 +1,11 @@
 package de.tuhh.luethke.oKDE.utility;
 
-import de.tuhh.luethke.oKDE.model.SampleModel;
+import de.tuhh.luethke.oKDE.model.SampleDist;
 
 
 public class Compressor {
 
-	public SampleModel compress(SampleModel model){
+	public SampleDist compress(SampleDist dist){
 		
 		return null;
 	}

@@ -367,6 +367,12 @@ public class SampleDist {
 			weights.add(d.getWeightSum());
 		return weights;
 	}
+	
+	public void setSubWeights(ArrayList<Double> weights) {
+		for (int i = 0; i < mSubDistributions.size(); i++) {
+			mSubDistributions.get(i).setWeightSum(weights.get(i));
+		}
+	}
 
 	public ArrayList<Integer> getmSubspace() {
 		return mSubspace;

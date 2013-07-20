@@ -9,14 +9,13 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 
-import javax.swing.JFrame;
-
 import org.ejml.simple.SimpleMatrix;
-import org.math.plot.Plot3DPanel;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.utility.Hellinger;
 import de.tuhh.luethke.oKDE.utility.Projector;
+import de.tuhh.luethke.oKDE.utility.MomentMatcher;
 
 public class test {
 
@@ -114,6 +113,29 @@ public class test {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
 		}
+		SampleDist dist0 = new SampleDist(dist);
+		try {
+			MomentMatcher.matchMoments(dist0, true);
+			System.out.println(dist0.getGlobalMean());
+			System.out.println(dist0.getGlobalCovariance());
+		} catch (EmptyDistributionException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		try {
+			Hellinger.calculateUnscentedHellingerDistance(dist0, dist);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		try {
+			Hellinger.getAllSigmaPoints(dist, 3);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("finished");
+
 		/*ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
 		double[][] c = {{0.0,0.0}, {0.0,0.0}};
 		cov1.add(new SimpleMatrix(c));

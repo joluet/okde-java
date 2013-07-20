@@ -107,13 +107,12 @@ public class Projector {
 				subDistributions.get(i).setmGlobalCovarianceSmoothed(transformMatrix(trnsF, subCov, validElements, countValidElements));
 			}
 			MomentMatcher.matchMoments(subDistributions.get(i), true);
-			SimpleMatrix subCov = subDistributions.get(i).getmGlobalCovarianceSmoothed();
+			SimpleMatrix subCov = subDistributions.get(i).getGlobalCovariance();
 			subDistributions.get(i).setmGlobalCovarianceSmoothed(subCov.plus(trnsBandwidthMatrix));
 		}
 		// transform also the global covariance
-		globalCov = trnsF.mult(globalCov).mult(globalCov);
 		globalCov = transformMatrix(trnsF, globalCov, validElements, countValidElements);
-		globalCov = globalCov;
+		System.out.println(globalCov);
 
 	}
 

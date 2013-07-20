@@ -41,4 +41,14 @@ public class MatrixOps {
 				newVector.set(j++, 0, vector.get(i));
 		return newVector;
 	}
+
+	public static SimpleMatrix ones(int rows, int cols) {
+		SimpleMatrix matrix = new SimpleMatrix(rows, cols);
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < rows; j++) {
+				matrix.set(i,j,1);
+			}
+		}
+		return matrix;
+	}
 }
