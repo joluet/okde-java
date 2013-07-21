@@ -12,6 +12,9 @@ import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
 
 public class SampleDist {
+	
+	//TODO: remove this field
+	public double compressionError;
 
 	// bandwidth factor
 	private double mBandwidthFactor;
@@ -27,7 +30,7 @@ public class SampleDist {
 
 	// overall covariance
 	private SimpleMatrix mGlobalCovariance;
-	
+
 	// overall covariance plus bandwidth
 	private SimpleMatrix mGlobalCovarianceSmoothed;
 
@@ -63,14 +66,16 @@ public class SampleDist {
 		mSubDistributions = new ArrayList<SampleDist>();
 	}
 
-	public SampleDist(ArrayList<Double> weights, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covariances) {
+	public SampleDist(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances) {
 		super();
 		mSubDistributions = new ArrayList<SampleDist>();
+		for(int i=0; i< means.length; i++)
+			mSubDistributions.add(new SampleDist(weights[i], means[i], covariances[i]));
 		mWeightSum = 0;
 		for (double w : weights) {
 			mWeightSum += w;
 		}
-		mN_eff = weights.size();
+		mN_eff = weights.length;
 		mForgettingFactor = 1;
 	}
 
@@ -79,9 +84,9 @@ public class SampleDist {
 		mWeightSum = w;
 		mGlobalMean = mean;
 		mGlobalCovariance = covariance;
-		//initialize smoothed covariance to zero
+		// initialize smoothed covariance to zero
 		mGlobalCovarianceSmoothed = new SimpleMatrix(covariance).scale(0);
-		//initialize bandwidth matrix to zero
+		// initialize bandwidth matrix to zero
 		mBandwidthMatrix = new SimpleMatrix(covariance).scale(0);
 		mN_eff = 0;
 		mForgettingFactor = 1;
@@ -90,6 +95,7 @@ public class SampleDist {
 
 	/**
 	 * Copy constructor
+	 * 
 	 * @param dist
 	 */
 	public SampleDist(SampleDist dist) {
@@ -192,7 +198,7 @@ public class SampleDist {
 		for (int i = 0; i < mSubDistributions.size() - weights.length; i++) {
 			double tmpWeight = mSubDistributions.get(i).getWeightSum();
 			mSubDistributions.get(i).setWeightSum(tmpWeight * mixWeightOld);
-		} 
+		}
 		for (int i = mSubDistributions.size() - weights.length; i < mSubDistributions.size(); i++) {
 			double tmpWeight = mSubDistributions.get(i).getWeightSum();
 			mSubDistributions.get(i).setWeightSum(tmpWeight * mixWeightNew * (1d / weights.length));
@@ -239,7 +245,7 @@ public class SampleDist {
 	}
 
 	public void setmBandwidthMatrix(SimpleMatrix mBandwidthMatrix) {
-		if(this.mGlobalCovariance == null)
+		if (this.mGlobalCovariance == null)
 			this.mGlobalCovarianceSmoothed = new SimpleMatrix(mBandwidthMatrix);
 		else
 			this.mGlobalCovarianceSmoothed = this.mGlobalCovariance.plus(mBandwidthMatrix);
@@ -331,7 +337,7 @@ public class SampleDist {
 			mSubDistributions.get(i).setGlobalCovariance(covariances.get(i));
 		}
 	}
-	
+
 	public ArrayList<SimpleMatrix> getSubSmoothedCovariances() {
 		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
 		for (SampleDist d : mSubDistributions)
@@ -367,7 +373,7 @@ public class SampleDist {
 			weights.add(d.getWeightSum());
 		return weights;
 	}
-	
+
 	public void setSubWeights(ArrayList<Double> weights) {
 		for (int i = 0; i < mSubDistributions.size(); i++) {
 			mSubDistributions.get(i).setWeightSum(weights.get(i));
@@ -491,18 +497,50 @@ public class SampleDist {
 		return I;
 	}
 
-	public double calculateY(double[] x, SampleDist dist, ArrayList<SimpleMatrix> means) {
-		SimpleMatrix bandwidth = dist.getmBandwidthMatrix();
-		double[][] dxVector = { x };
-		SimpleMatrix xVector = new SimpleMatrix(dxVector);
-		double d = 0d;
-		double n = means.size();
-		for (SimpleMatrix m : means) {
-			double tmp = (-0.5d) * xVector.minus(m).transpose().mult(bandwidth.invert()).mult(xVector.minus(m)).trace();
-			double powPi = Math.pow(4 * Math.PI, xVector.numRows());
-			d += ((1 / Math.sqrt(powPi * bandwidth.determinant())) * Math.exp(tmp));
+	public double evaluate(SimpleMatrix pointVector, boolean useSubDists, boolean useSmoothedCov) {
+		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
+		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
+		ArrayList<Double> weights = new ArrayList<Double>();
+		if(useSubDists) {
+			means = this.getSubMeans();
+			if(useSmoothedCov)
+				covs = this.getSubSmoothedCovariances();
+			else
+				covs = this.getSubCovariances();
+			weights = this.getSubWeights();
+		}else{
+			means.add(this.mGlobalMean);
+			covs.add(this.mGlobalCovariance);
+			weights.add(this.mWeightSum);
 		}
-		return d / n;
+			
+		SimpleMatrix bandwidth = this.mBandwidthMatrix;
+		/*double[][] dxVector = { { x }, { y } };
+		SimpleMatrix xVector = new SimpleMatrix(dxVector);*/
+		double d = 0d;
+		double n = means.get(0).numRows();
+		double a = Math.pow(Math.sqrt(2*Math.PI),n);
+		for (int i=0; i< means.size(); i++) {
+			SimpleMatrix m = means.get(i);
+			SimpleMatrix c = covs.get(i);
+			double w = weights.get(i);
+			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
+			d += ((1 / (a*Math.sqrt(c.determinant()) )) * Math.exp(tmp)) * w;
+		}
+		return d;
+	}
+	
+	/**
+	 * Evaluates the distribution at the given n-dimensional points and returns the results in a List of double-values.
+	 * @param points 
+	 * @return array of double values
+	 */
+	public ArrayList<Double> evaluate(ArrayList<SimpleMatrix> points, boolean useSubDists, boolean useSmoothedCov){
+		ArrayList<Double> resultPoints = new ArrayList<Double>();
+		for(SimpleMatrix point : points) {
+			resultPoints.add( evaluate(point, useSubDists, useSmoothedCov) );
+		}
+		return resultPoints;
 	}
 
 	/*
@@ -566,6 +604,7 @@ public class SampleDist {
 	public void setGlobalMean(double nEff) {
 		this.mN_eff = nEff;
 	}
+
 	public void setSubDistributions(ArrayList<SampleDist> subDistributions) {
 		this.mSubDistributions = subDistributions;
 	}

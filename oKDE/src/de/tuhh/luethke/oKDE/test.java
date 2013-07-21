@@ -13,6 +13,7 @@ import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.utility.Compressor;
 import de.tuhh.luethke.oKDE.utility.Hellinger;
 import de.tuhh.luethke.oKDE.utility.Projector;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
@@ -123,17 +124,13 @@ public class test {
 			e1.printStackTrace();
 		}
 		try {
-			Hellinger.calculateUnscentedHellingerDistance(dist0, dist);
+			dist = Compressor.compress(dist);
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		try {
-			Hellinger.getAllSigmaPoints(dist, 3);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		for(SampleDist d : dist.getSubDistributions())
+			System.out.println("subdist: "+ d.getGlobalMean() + " "+ d.getGlobalCovariance() + " smoothed"+ d.getmGlobalCovarianceSmoothed() + " " + d.getWeightSum());
 		System.out.println("finished");
 
 		/*ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
