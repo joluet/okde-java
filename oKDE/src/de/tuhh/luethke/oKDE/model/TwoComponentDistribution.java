@@ -6,28 +6,18 @@ import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.TooManyComponentsException;
 
-public class TwoComponentDistribution extends SampleDist {
+public class TwoComponentDistribution extends MultipleComponentDistribution {
+	private final static int NO_OF_COMPONENTS = 2;
 
-	// component distributions
-	private OneComponentDistribution[] mSubDistributions;
 
 	public TwoComponentDistribution(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances) throws TooManyComponentsException {
+		super(weights, means, covariances);
 		// check number of components
-		if (!(weights.length == 2 & means.length == 2 & covariances.length == 2))
+		if (!(weights.length == NO_OF_COMPONENTS & means.length == NO_OF_COMPONENTS & covariances.length == NO_OF_COMPONENTS))
 			throw new TooManyComponentsException();
-		// add components to distribution
-		mSubDistributions = new OneComponentDistribution[2];
-		mSubDistributions[0] = new OneComponentDistribution(weights[0], means[0], covariances[0]);
-		mSubDistributions[1] = new OneComponentDistribution(weights[1], means[1], covariances[1]);
-		mWeightSum = 0;
-		for (double w : weights) {
-			mWeightSum += w;
-		}
-		mN_eff = weights.length;
-		mForgettingFactor = 1;
 	}
 
-	public TwoComponentDistribution(double w, SimpleMatrix mean, SimpleMatrix covariance) {
+	/*public TwoComponentDistribution(double w, SimpleMatrix mean, SimpleMatrix covariance) {
 		mWeightSum = w;
 		mGlobalMean = mean;
 		mGlobalCovariance = covariance;
@@ -38,7 +28,7 @@ public class TwoComponentDistribution extends SampleDist {
 		mN_eff = 0;
 		mForgettingFactor = 1;
 		mSubDistributions = null;
-	}
+	}*/
 
 	/**
 	 * Copy constructor
@@ -46,22 +36,10 @@ public class TwoComponentDistribution extends SampleDist {
 	 * @param dist
 	 */
 	TwoComponentDistribution(TwoComponentDistribution dist) {
-		OneComponentDistribution[] subDists = dist.getSubComponents();
-		OneComponentDistribution[] copy = {new OneComponentDistribution(subDists[0]),
-				new OneComponentDistribution(subDists[1])};
-		this.mSubDistributions = copy;
-		this.mGlobalCovarianceSmoothed = dist.getmGlobalCovarianceSmoothed();
-		this.mBandwidthFactor = dist.getmBandwidthFactor();
-		this.mBandwidthMatrix = dist.getmBandwidthMatrix();
-		this.mGlobalCovariance = dist.getGlobalCovariance();
-		this.mGlobalMean = dist.getGlobalMean();
-		this.mSubspaceGlobalCovariance = dist.getSubspaceGlobalCovariance();
-		this.mSubspaceInverseCovariance = dist.getmSubspaceInverseCovariance();
-		this.mWeightSum = dist.getWeightSum();
-		this.mN_eff = dist.getNeff();
+		super(dist);
 	}
 
-	public void setSubComponents(OneComponentDistribution[] subComponents) {
+/*	public void setSubComponents(OneComponentDistribution[] subComponents) {
 		this.mSubDistributions = subComponents;
 	}
 
@@ -102,18 +80,8 @@ public class TwoComponentDistribution extends SampleDist {
 	public void setSubWeights(double weight1, double weight2) {
 		mSubDistributions[0].setWeightSum(weight1);
 		mSubDistributions[1].setWeightSum(weight2);
-	}
+	}*/
 
-	@Override
-	public double evaluate(SimpleMatrix pointVector, boolean useSubDists, boolean useSmoothedCov) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 
-	@Override
-	public ArrayList<Double> evaluate(ArrayList<SimpleMatrix> points, boolean useSubDists, boolean useSmoothedCov) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 }

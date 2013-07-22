@@ -4,48 +4,60 @@ import java.util.ArrayList;
 
 import org.ejml.simple.SimpleMatrix;
 
-abstract class MultipleComponentDistribution extends SampleDist {
+import de.tuhh.luethke.oKDE.Exceptions.NoOfArgumentsException;
+
+abstract public class MultipleComponentDistribution extends SampleDist {
+
+	// component distributions
+	private OneComponentDistribution[] mSubDistributions;
 	
-	public MultipleComponentDistribution(){
+
+	public MultipleComponentDistribution(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances) {
+		// add components to distribution
+		mSubDistributions = new OneComponentDistribution[weights.length];
+		for(int i=0; i<mSubDistributions.length; i++){
+			mSubDistributions[i] = new OneComponentDistribution(weights[i], means[i], covariances[i]);	
+		}
+		mGlobalWeight = 0;
+		for (double w : weights) {
+			mGlobalWeight += w;
+		}
+		mForgettingFactor = 1;
 	}
 
-	public MultipleComponentDistribution(double w, SimpleMatrix mean, SimpleMatrix covariance) {
-		super(w, mean, covariance);
+	/**
+	 * Copy constructor
+	 * 
+	 * @param dist
+	 */
+	public MultipleComponentDistribution(MultipleComponentDistribution dist) {
+		OneComponentDistribution[] subDists = dist.getSubComponents();
+		OneComponentDistribution[] copy = new OneComponentDistribution[subDists.length];
+		for(int i=0; i<subDists.length; i++) {
+			copy[i] = new OneComponentDistribution(subDists[i]);
+		}
+		this.mSubDistributions = copy;
+		this.mBandwidthMatrix = dist.getBandwidthMatrix();
+		this.mGlobalCovariance = dist.getGlobalCovariance();
+		this.mGlobalMean = dist.getGlobalMean();
+		this.mSubspaceGlobalCovariance = dist.getSubspaceGlobalCovariance();
+		this.mSubspaceInverseCovariance = dist.getSubspaceInverseCovariance();
+		this.mGlobalWeight = dist.getGlobalWeight();
 	}
 	
-	// component distributions
-	private ArrayList<SampleDist> mSubDistributions;
 
 	@Override
-	public double evaluate(SimpleMatrix pointVector, boolean useSubDists, boolean useSmoothedCov) {
-		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
-		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
-		ArrayList<Double> weights = new ArrayList<Double>();
-		if (useSubDists) {
-			means = this.getSubMeans();
-			if (useSmoothedCov)
-				covs = this.getSubSmoothedCovariances();
-			else
-				covs = this.getSubCovariances();
-			weights = this.getSubWeights();
-		} else {
-			means.add(this.mGlobalMean);
-			covs.add(this.mGlobalCovariance);
-			weights.add(this.mWeightSum);
-		}
-
-		SimpleMatrix bandwidth = this.mBandwidthMatrix;
-		/*
-		 * double[][] dxVector = { { x }, { y } }; SimpleMatrix xVector = new
-		 * SimpleMatrix(dxVector);
-		 */
+	public double evaluate(SimpleMatrix pointVector) {
+		SimpleMatrix[] means = this.getSubMeans();
+		SimpleMatrix[] covs = this.getSubCovariances();
+		Double[] weights = this.getSubWeights();
 		double d = 0d;
-		double n = means.get(0).numRows();
+		double n = means[0].numRows();
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
-		for (int i = 0; i < means.size(); i++) {
-			SimpleMatrix m = means.get(i);
-			SimpleMatrix c = covs.get(i);
-			double w = weights.get(i);
+		for (int i = 0; i < means.length; i++) {
+			SimpleMatrix m = means[i];
+			SimpleMatrix c = covs[i];
+			double w = weights[i];
 			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
 			d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
 		}
@@ -60,59 +72,65 @@ abstract class MultipleComponentDistribution extends SampleDist {
 	 * @return array of double values
 	 */
 	@Override
-	public ArrayList<Double> evaluate(ArrayList<SimpleMatrix> points, boolean useSubDists, boolean useSmoothedCov) {
+	public ArrayList<Double> evaluate(ArrayList<SimpleMatrix> points) {
 		ArrayList<Double> resultPoints = new ArrayList<Double>();
 		for (SimpleMatrix point : points) {
-			resultPoints.add(evaluate(point, useSubDists, useSmoothedCov));
+			resultPoints.add(evaluate(point));
 		}
 		return resultPoints;
 	}
 
 
-	public void setSubMeans(ArrayList<SimpleMatrix> means) {
-		for (int i = 0; i < mSubDistributions.size(); i++) {
-			mSubDistributions.get(i).setGlobalMean(means.get(i));
-		}
+	
+	
+	public void setSubComponents(OneComponentDistribution[] subComponents) {
+		this.mSubDistributions = subComponents;
 	}
 
-	public void setSubCovariances(ArrayList<SimpleMatrix> covariances) {
-		for (int i = 0; i < mSubDistributions.size(); i++) {
-			mSubDistributions.get(i).setGlobalCovariance(covariances.get(i));
-		}
+	public OneComponentDistribution[] getSubComponents() {
+		return mSubDistributions;
 	}
-
-	public ArrayList<SimpleMatrix> getSubSmoothedCovariances() {
-		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
-		for (SampleDist d : mSubDistributions)
-			covs.add(d.getmGlobalCovarianceSmoothed());
-		return covs;
-	}
-
-	public ArrayList<SimpleMatrix> getSubMeans() {
-		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
-		for (SampleDist d : mSubDistributions)
-			means.add(d.getGlobalMean());
+	
+	public SimpleMatrix[] getSubMeans() {
+		SimpleMatrix[] means = new SimpleMatrix[mSubDistributions.length];
+		for (int i=0; i<mSubDistributions.length; i++)
+			means[i] = mSubDistributions[i].getGlobalMean();
 		return means;
 	}
 
-	public ArrayList<SimpleMatrix> getSubCovariances() {
-		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
-		for (SampleDist d : mSubDistributions)
-			covs.add(d.getGlobalCovariance());
+	public SimpleMatrix[] getSubCovariances() {
+		SimpleMatrix[] covs = new SimpleMatrix[mSubDistributions.length];
+		for (int i=0; i<mSubDistributions.length; i++)
+			covs[i] = mSubDistributions[i].getGlobalCovariance();
 		return covs;
 	}
-
-	public ArrayList<Double> getSubWeights() {
-		ArrayList<Double> weights = new ArrayList<Double>();
-		for (SampleDist d : mSubDistributions)
-			weights.add(d.getWeightSum());
+	
+	public Double[] getSubWeights() {
+		Double[] weights = new Double[mSubDistributions.length];
+		for (int i=0; i<mSubDistributions.length; i++)
+			weights[i] = mSubDistributions[i].getGlobalWeight();
 		return weights;
 	}
-
-	public void setSubWeights(ArrayList<Double> weights) {
-		for (int i = 0; i < mSubDistributions.size(); i++) {
-			mSubDistributions.get(i).setWeightSum(weights.get(i));
-		}
+	
+	public void setSubMeans(SimpleMatrix[] means) throws NoOfArgumentsException {
+		if(means.length != mSubDistributions.length)
+			throw new NoOfArgumentsException();
+		for (int i=0; i<mSubDistributions.length; i++)
+			mSubDistributions[i].setGlobalMean(means[i]);
 	}
 
+	public void setSubCovariances(SimpleMatrix[] covariances) throws NoOfArgumentsException {
+		if(covariances.length != mSubDistributions.length)
+			throw new NoOfArgumentsException();
+		for (int i=0; i<mSubDistributions.length; i++)
+			mSubDistributions[i].setGlobalCovariance(covariances[i]);
+	}
+	
+	@Override
+	public void setBandwidthMatrix(SimpleMatrix mBandwidthMatrix) {
+		this.mBandwidthMatrix = mBandwidthMatrix;
+		for(SampleDist d : mSubDistributions){
+			d.setBandwidthMatrix(mBandwidthMatrix);
+		}
+	}
 }

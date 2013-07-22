@@ -22,13 +22,9 @@ public class MomentMatcher {
 	 * @throws EmptyDistributionException
 	 */
 
-	public static void matchMoments(SampleModel distribution, boolean smoothedCovariances) throws EmptyDistributionException {
+	public static void matchMoments(SampleModel distribution) throws EmptyDistributionException {
 		// Array of covariance matrices of components
-		ArrayList<SimpleMatrix> smCovariances;
-		if (smoothedCovariances)
-			smCovariances = distribution.getSubSmoothedCovariances();
-		else
-			smCovariances = distribution.getSubCovariances();
+		ArrayList<SimpleMatrix> smCovariances = distribution.getSubCovariances();
 		// Array of mean vectors of components
 		ArrayList<SimpleMatrix> smMeans = distribution.getSubMeans();
 
@@ -47,7 +43,7 @@ public class MomentMatcher {
 				newCovariance = smCovariances.get(0);
 			distribution.setGlobalCovariance(newCovariance);
 			distribution.setGlobalMean(newMean);
-			distribution.setWeightSum(smWeights.get(0));
+			distribution.setGlobalWeight(smWeights.get(0));
 			return;
 		}
 
@@ -78,16 +74,12 @@ public class MomentMatcher {
 		// set calculated parameters to distribution
 		distribution.setGlobalCovariance(newCovariance);
 		distribution.setGlobalMean(newMean);
-		distribution.setWeightSum(newWeight);
+		distribution.setGlobalWeight(newWeight);
 	}
 	
-	public static void matchMoments(TwoComponentDistribution distribution, boolean smoothedCovariances) throws EmptyDistributionException {
+	public static void matchMoments(TwoComponentDistribution distribution) throws EmptyDistributionException {
 		// Array of covariance matrices of components
-		SimpleMatrix[] smCovariances;
-		if (smoothedCovariances)
-			smCovariances = distribution.getSubSmoothedCovariances();
-		else
-			smCovariances = distribution.getSubCovariances();
+		SimpleMatrix[] smCovariances = distribution.getSubCovariances();
 		// Array of mean vectors of components
 		SimpleMatrix[] smMeans = distribution.getSubMeans();
 
@@ -106,7 +98,7 @@ public class MomentMatcher {
 				newCovariance = smCovariances[0];
 			distribution.setGlobalCovariance(newCovariance);
 			distribution.setGlobalMean(newMean);
-			distribution.setWeightSum(smWeights[0]);
+			distribution.setGlobalWeight(smWeights[0]);
 			return;
 		}
 
@@ -137,6 +129,6 @@ public class MomentMatcher {
 		// set calculated parameters to distribution
 		distribution.setGlobalCovariance(newCovariance);
 		distribution.setGlobalMean(newMean);
-		distribution.setWeightSum(newWeight);
+		distribution.setGlobalWeight(newWeight);
 	}
 }

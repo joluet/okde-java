@@ -14,20 +14,21 @@ public class Compressor {
 	private final static double D_TH = 0.02;
 
 	public static SampleModel compress(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
-		SampleModel compression = mergeTwoClosestComps(dist);
-		while (compression.compressionError < D_TH) {
-			dist = compression;
-			compression = mergeTwoClosestComps(dist);
+		SampleModel inputModelCopy = new SampleModel(dist);
+		double compressionError = mergeTwoClosestComps(dist);
+		while (compressionError < D_TH) {
+			inputModelCopy = new SampleModel(dist);
+			compressionError = mergeTwoClosestComps(dist);
 		}
-		return dist;
+		return inputModelCopy;
 	}
 
-	private static SampleModel mergeTwoClosestComps(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
-		SampleModel ret = new SampleModel(dist);
-		TwoComponentDistribution twoCompDist = null;// = new SampleDist();
-		ArrayList<SimpleMatrix> means = ret.getSubMeans();
-		ArrayList<SimpleMatrix> covs = ret.getSubSmoothedCovariances();
-		ArrayList<Double> weights = ret.getSubWeights();
+	private static double mergeTwoClosestComps(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
+		double compressionError = 0;
+		TwoComponentDistribution twoCompDist = null;
+		ArrayList<SimpleMatrix> means = dist.getSubMeans();
+		ArrayList<SimpleMatrix> covs = dist.getSubSmoothedCovariances();
+		ArrayList<Double> weights = dist.getSubWeights();
 		double distance = -1d;
 		int indexComp1=0, indexComp2=0;
 		for (int i = 0; i < means.size(); i++) {
@@ -51,11 +52,9 @@ public class Compressor {
 		double[] weightsArray = {weights.get(indexComp1), weights.get(indexComp2)};
 		try {
 			twoCompDist = new TwoComponentDistribution(weightsArray, meansArray, covarianceArray);
-			//twoCompDist.updateDistribution(meansArray, covarianceArray, weightsArray);
-			MomentMatcher.matchMoments(twoCompDist, false);
-			twoCompDist.setmGlobalCovarianceSmoothed(twoCompDist.getGlobalCovariance());
+			MomentMatcher.matchMoments(twoCompDist);
 			OneComponentDistribution oneCompDist = new OneComponentDistribution(twoCompDist);
-			ret.compressionError = Hellinger.calculateUnscentedHellingerDistance(oneCompDist, twoCompDist);
+			compressionError = Hellinger.calculateUnscentedHellingerDistance(oneCompDist, twoCompDist);
 		} catch (EmptyDistributionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -63,9 +62,9 @@ public class Compressor {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		ret.getSubDistributions().set(indexComp2,twoCompDist);
-		ret.getSubDistributions().remove(indexComp1);
-		return ret;
+		dist.getSubDistributions().set(indexComp2,twoCompDist);
+		dist.getSubDistributions().remove(indexComp1);
+		return compressionError;
 	}
 	
 	private static double euclidianDistance(SimpleMatrix columnVector1, SimpleMatrix columnVector2) {

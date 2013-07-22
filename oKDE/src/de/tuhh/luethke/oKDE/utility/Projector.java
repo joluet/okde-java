@@ -7,6 +7,7 @@ import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
+import de.tuhh.luethke.oKDE.Exceptions.NoOfArgumentsException;
 import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.SampleDist;
 import de.tuhh.luethke.oKDE.model.SampleModel;
@@ -31,15 +32,15 @@ public class Projector {
 	 * @throws EmptyDistributionException
 	 */
 	public static void projectSampleDistToSubspace(SampleModel distribution) throws EmptyDistributionException {
-		MomentMatcher.matchMoments(distribution, true);
-		SimpleMatrix globalCov = distribution.getGlobalCovariance();
+		MomentMatcher.matchMoments(distribution);
+		SimpleMatrix globalSmoothedCov = distribution.getmGlobalCovarianceSmoothed();
 		SimpleMatrix globalMean = distribution.getGlobalMean();
-		int globalCovSize = globalCov.numRows();
+		int globalCovSize = globalSmoothedCov.numRows();
 		SimpleMatrix identity = SimpleMatrix.identity(globalCovSize);
-		globalCov = globalCov.plus(identity.scale(CONST_SMALL_FACTOR));
-		int d = globalCov.numCols();
+		globalSmoothedCov = globalSmoothedCov.plus(identity.scale(CONST_SMALL_FACTOR));
+		int d = globalSmoothedCov.numCols();
 		// calculate eigen directions --> determine the subspace
-		SimpleSVD svd = globalCov.svd(true);
+		SimpleSVD<?> svd = globalSmoothedCov.svd(true);
 		SimpleMatrix U = svd.getU();
 		SimpleMatrix S = svd.getW();
 		System.out.println("S" + S);
@@ -52,7 +53,6 @@ public class Projector {
 
 		Double[] validElements = new Double[d];
 		int countValidElements = 0;
-		boolean isCompletelySingular = false;
 		SimpleMatrix invS = null;
 		// if S is almost zero --> singular
 		if (s.elementMaxAbs() < MIN_VALUE || Double.isNaN(s.elementSum())) {
@@ -61,7 +61,6 @@ public class Projector {
 			for (int i = 0; i < validElements.length; i++)
 				validElements[i] = 1d;
 			countValidElements = validElements.length;
-			isCompletelySingular = true;
 		} else {
 			// if S ins not completely singular: check what elements are >0
 			// store them in validElements
@@ -86,7 +85,7 @@ public class Projector {
 		SimpleMatrix trnsF = MatrixOps.elemSqrt(MatrixOps.abs(invS)).mult(V.invert());
 
 		// forward transform the pdf and remove non-valid eigendirections
-		SimpleMatrix trnsBandwidthMatrix = transformMatrix(trnsF, distribution.getmBandwidthMatrix(), validElements, countValidElements);
+		SimpleMatrix trnsBandwidthMatrix = transformMatrix(trnsF, distribution.getBandwidthMatrix(), validElements, countValidElements);
 		System.out.println(trnsBandwidthMatrix);
 
 		List<SampleDist> subDistributions = distribution.getSubDistributions();
@@ -96,11 +95,11 @@ public class Projector {
 			if (subDistributions.get(i).getClass() == TwoComponentDistribution.class) {
 				TwoComponentDistribution subDist = (TwoComponentDistribution) subDistributions.get(i);
 				subSubMeans = subDist.getSubMeans();
-				subSubCovs = subDist.getSubSmoothedCovariances();
+				subSubCovs = subDist.getSubCovariances();
 			} else {
 				OneComponentDistribution subDist = (OneComponentDistribution) subDistributions.get(i);
-				subSubMeans[1] = subDist.getGlobalMean();
-				subSubCovs[1] = subDist.getmGlobalCovarianceSmoothed();
+				subSubMeans[0] = subDist.getGlobalMean();
+				subSubCovs[0] = subDist.getmGlobalCovarianceSmoothed();
 			}
 			if (subSubMeans.length > 1) {
 				for (int j = 0; j < subSubMeans.length; j++) {
@@ -109,23 +108,29 @@ public class Projector {
 					tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements));
 					subSubMeans[i] = tmp;
 				}
-				((TwoComponentDistribution) subDistributions.get(i)).setSubMeans(subSubMeans[0], subSubMeans[1]);
-				((TwoComponentDistribution) subDistributions.get(i)).setSubCovariances(subSubCovs[0], subSubCovs[1]);
-				MomentMatcher.matchMoments(((TwoComponentDistribution) subDistributions.get(i)), true);
+				try {
+					((TwoComponentDistribution) subDistributions.get(i)).setSubMeans(subSubMeans);
+					((TwoComponentDistribution) subDistributions.get(i)).setSubCovariances(subSubCovs);
+				} catch (NoOfArgumentsException e) {
+					// This exception can't be thrown because sample models can
+					// only contain subcomponents with at most 2 components
+					e.printStackTrace();
+				}
+				MomentMatcher.matchMoments(((TwoComponentDistribution) subDistributions.get(i)));
 			} else {
 				SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();
-				SimpleMatrix subCov = subDistributions.get(i).getmGlobalCovarianceSmoothed();
 				SimpleMatrix tmp = trnsF.mult(subMean.minus(globalMean));
 				tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements));
 				subDistributions.get(i).setGlobalMean(tmp);
-				subDistributions.get(i).setmGlobalCovarianceSmoothed(transformMatrix(trnsF, subCov, validElements, countValidElements));
+				// subDistributions.get(i).setmGlobalCovarianceSmoothed(transformMatrix(trnsF,
+				// subCov, validElements, countValidElements));
 			}
-			SimpleMatrix subCov = subDistributions.get(i).getGlobalCovariance();
-			subDistributions.get(i).setmGlobalCovarianceSmoothed(subCov.plus(trnsBandwidthMatrix));
+			subDistributions.get(i).setBandwidthMatrix(trnsBandwidthMatrix);
+			// subDistributions.get(i).setmGlobalCovarianceSmoothed(subCov.plus(trnsBandwidthMatrix));
 		}
 		// transform also the global covariance
-		globalCov = transformMatrix(trnsF, globalCov, validElements, countValidElements);
-		System.out.println(globalCov);
+		globalSmoothedCov = transformMatrix(trnsF, globalSmoothedCov, validElements, countValidElements);
+		System.out.println(globalSmoothedCov);
 
 	}
 

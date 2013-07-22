@@ -3,7 +3,6 @@ package de.tuhh.luethke.oKDE.model;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import org.ejml.data.DenseMatrix64F;
@@ -14,10 +13,26 @@ import org.ejml.simple.SimpleSVD;
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
 
-public class SampleModel extends MultipleComponentDistribution {
+public class SampleModel extends SampleDist {
 
+	// effective number of observed samples
+	protected double mEffectiveNoOfSamples;
+	
 	// component distributions
 	protected ArrayList<SampleDist> mSubDistributions;
+
+	public SampleModel() {
+		super();
+		this.mSubDistributions = new ArrayList<SampleDist>();
+		this.mBandwidthMatrix = null;
+		this.mGlobalCovariance = null;
+		this.mGlobalMean = null;
+		this.mSubspace = null;
+		this.mSubspaceGlobalCovariance = null;
+		this.mSubspaceInverseCovariance = null;
+		this.mGlobalWeight = 0;
+		this.mEffectiveNoOfSamples = 0;
+	}
 
 	/**
 	 * Copy constructor
@@ -36,24 +51,24 @@ public class SampleModel extends MultipleComponentDistribution {
 		ArrayList<SampleDist> copy = new ArrayList<SampleDist>();
 		// copy the list of sub components
 		for (SampleDist d : subDists) {
-			// We don't know if a sub component is of type OneComponentDistribution or TwoComponentDistribution.
-			// Thus we have to call the constructor using reflection api. This way it is generic and works in both cases.
+			// We don't know if a sub component is of type
+			// OneComponentDistribution or TwoComponentDistribution.
+			// Thus we have to call the constructor using reflection api. This
+			// way it is generic and works in both cases.
 			Constructor<? extends SampleDist> ctor = d.getClass().getDeclaredConstructor(d.getClass());
 			ctor.setAccessible(true);
 			SampleDist tmp = (SampleDist) ctor.newInstance(d);
 			copy.add(tmp);
 		}
 		this.mSubDistributions = copy;
-		this.mGlobalCovarianceSmoothed = dist.getmGlobalCovarianceSmoothed();
-		this.mBandwidthFactor = dist.getmBandwidthFactor();
-		this.mBandwidthMatrix = dist.getmBandwidthMatrix();
+		this.mBandwidthMatrix = dist.getBandwidthMatrix();
 		this.mGlobalCovariance = dist.getGlobalCovariance();
 		this.mGlobalMean = dist.getGlobalMean();
 		this.mSubspace = dist.getmSubspace();
 		this.mSubspaceGlobalCovariance = dist.getSubspaceGlobalCovariance();
-		this.mSubspaceInverseCovariance = dist.getmSubspaceInverseCovariance();
-		this.mWeightSum = dist.getWeightSum();
-		this.mN_eff = dist.getNeff();
+		this.mSubspaceInverseCovariance = dist.getSubspaceInverseCovariance();
+		this.mGlobalWeight = dist.getGlobalWeight();
+		this.mEffectiveNoOfSamples = dist.mEffectiveNoOfSamples;
 	}
 
 	// subspace: row/column ids
@@ -88,7 +103,7 @@ public class SampleModel extends MultipleComponentDistribution {
 		List<SampleDist> subDists = getSubDistributions();
 		Double[] weights = new Double[subDists.size()];
 		for (int i = 0; i < subDists.size(); i++)
-			weights[i] = subDists.get(i).getWeightSum();
+			weights[i] = subDists.get(i).getGlobalWeight();
 
 		SampleModel subSpaceDist = null;
 		try {
@@ -114,15 +129,14 @@ public class SampleModel extends MultipleComponentDistribution {
 		}
 		// reestimate bandwidth as explained in oKDE paper
 
-		double bandwidth = reestimateBandwidth(subSpaceDist.getSubMeans().toArray(new SimpleMatrix[0]),
-				subSpaceDist.getSubCovariances().toArray(new SimpleMatrix[0]), weights, subSpaceDist.getSubspaceGlobalCovariance(), mN_eff);
-		System.out.println("BANDW" + bandwidth);
-		subSpaceDist.setmBandwidthFactor(bandwidth);
+		double bandwidthFactor = reestimateBandwidth(subSpaceDist.getSubMeans().toArray(new SimpleMatrix[0]),
+				subSpaceDist.getSubCovariances().toArray(new SimpleMatrix[0]), weights, subSpaceDist.getSubspaceGlobalCovariance(), mEffectiveNoOfSamples);
+		System.out.println("BANDW" + bandwidthFactor);
 		// project Bandwidth into original space
-		SimpleMatrix bandwidthMatrix = projectBandwidthToOriginalSpace(subSpaceDist);
+		SimpleMatrix bandwidthMatrix = projectBandwidthToOriginalSpace(subSpaceDist, bandwidthFactor);
 		this.mBandwidthMatrix = bandwidthMatrix;
 		for (int i = 0; i < this.getSubDistributions().size(); i++) {
-			this.getSubDistributions().get(i).setmBandwidthMatrix(bandwidthMatrix);
+			this.getSubDistributions().get(i).setBandwidthMatrix(bandwidthMatrix);
 		}
 		System.out.println("BW: " + bandwidthMatrix);
 		System.out.println(bandwidthMatrix.get(0, 0) + " " + bandwidthMatrix.get(1, 1));
@@ -155,43 +169,42 @@ public class SampleModel extends MultipleComponentDistribution {
 		double sumOfNewWeights = 0;
 		for (int i = 0; i < weights.length; i++) {
 			sumOfNewWeights += weights[i];
-			mSubDistributions.add(new TwoComponentDistribution(weights[i], means[i], covariances[i]));
+			mSubDistributions.add(new OneComponentDistribution(weights[i], means[i], covariances[i]));
 		}
 
-		mN_eff = mN_eff * mForgettingFactor + weights.length;
+		mEffectiveNoOfSamples = mEffectiveNoOfSamples * mForgettingFactor + weights.length;
 
 		// calculate mixing weights for old and new weights
-		double mixWeightOld = mWeightSum / (mWeightSum * mForgettingFactor + sumOfNewWeights);
-		double mixWeightNew = sumOfNewWeights / (mWeightSum * mForgettingFactor + sumOfNewWeights);
+		double mixWeightOld = mGlobalWeight / (mGlobalWeight * mForgettingFactor + sumOfNewWeights);
+		double mixWeightNew = sumOfNewWeights / (mGlobalWeight * mForgettingFactor + sumOfNewWeights);
 
-		mWeightSum = mWeightSum * mForgettingFactor + sumOfNewWeights;
+		mGlobalWeight = mGlobalWeight * mForgettingFactor + sumOfNewWeights;
 
 		for (int i = 0; i < mSubDistributions.size() - weights.length; i++) {
-			double tmpWeight = mSubDistributions.get(i).getWeightSum();
-			mSubDistributions.get(i).setWeightSum(tmpWeight * mixWeightOld);
+			double tmpWeight = mSubDistributions.get(i).getGlobalWeight();
+			mSubDistributions.get(i).setGlobalWeight(tmpWeight * mixWeightOld);
 		}
 		for (int i = mSubDistributions.size() - weights.length; i < mSubDistributions.size(); i++) {
-			double tmpWeight = mSubDistributions.get(i).getWeightSum();
-			mSubDistributions.get(i).setWeightSum(tmpWeight * mixWeightNew * (1d / weights.length));
+			double tmpWeight = mSubDistributions.get(i).getGlobalWeight();
+			mSubDistributions.get(i).setGlobalWeight(tmpWeight * mixWeightNew * (1d / weights.length));
 		}
-
 		// system.out.println(mixWeightOld + "-" + mixWeightNew + " " +
 		// mWeightSum
 		// + " " + mWeights);
 	}
 
-	private static SampleModel projectToSubspace(SampleModel dist) throws EmptyDistributionException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
+	private static SampleModel projectToSubspace(SampleModel dist) throws EmptyDistributionException, IllegalArgumentException,
+			InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
 		double minBW = 1e-7;
 		SampleModel distribution = new SampleModel(dist);
 		ArrayList<Integer> subSpace = new ArrayList<Integer>();
-		MomentMatcher.matchMoments(distribution, false);
+		MomentMatcher.matchMoments(distribution);
 		// system.out.println(subSpaceDist.getMeans().get(0));
 		SimpleMatrix overallCovariance = distribution.getGlobalCovariance();
-		// system.out.println("cov: " + overallCovariance);
-		SimpleSVD svd = overallCovariance.svd(true);
+		System.out.println("cov: " + overallCovariance);
+		SimpleSVD<?> svd = overallCovariance.svd(true);
 		SimpleMatrix U = svd.getU();
 		SimpleMatrix S = svd.getW();
-		SimpleMatrix V = svd.getV();
 		// system.out.println("u" + U);
 		// system.out.println("s" + S);
 		// system.out.println("v" + V);
@@ -212,7 +225,7 @@ public class SampleModel extends MultipleComponentDistribution {
 				count++;
 			}
 		}
-		// //system.out.println("F: " + F);
+		// System.out.println("F: " + F);
 		mean = (mean / count) * 1e-2;
 		// //system.out.println("mean" + mean);
 		for (int i = 0; i < S.numRows(); i++) {
@@ -248,16 +261,16 @@ public class SampleModel extends MultipleComponentDistribution {
 		distribution.setSubCovariances(covariances);
 		distribution.setSubMeans(originalMeans);
 
-		distribution.setmSubspaceInverseCovariance(iF);
+		distribution.setSubspaceInverseCovariance(iF);
 		distribution.setmSubspace(subSpace);
 		// //system.out.println("Array: "+distribution.getmSubspace());
 		return distribution;
 	}
 
-	private static SimpleMatrix projectBandwidthToOriginalSpace(SampleModel distribution) {
+	private static SimpleMatrix projectBandwidthToOriginalSpace(SampleModel distribution, double bandwidthFactor) {
 		SimpleMatrix bandwidth = SimpleMatrix.identity(distribution.getGlobalCovariance().numCols());
 		// SimpleMatrix distribution
-		SimpleMatrix subSpaceBandwidth = distribution.getSubspaceGlobalCovariance().scale(Math.pow(distribution.getmBandwidthFactor(), 2));
+		SimpleMatrix subSpaceBandwidth = distribution.getSubspaceGlobalCovariance().scale(Math.pow(bandwidthFactor, 2));
 		ArrayList<Integer> subspace = distribution.getmSubspace();
 		for (int i = 0; i < subSpaceBandwidth.numRows(); i++) {
 			for (int j = 0; j < subSpaceBandwidth.numCols(); j++) {
@@ -267,7 +280,7 @@ public class SampleModel extends MultipleComponentDistribution {
 		}
 		// H(valid, valid) = H2 ;
 		// H2t = iF'*H*iF ;,
-		SimpleMatrix invSubspaceCov = distribution.getmSubspaceInverseCovariance();
+		SimpleMatrix invSubspaceCov = distribution.getSubspaceInverseCovariance();
 		bandwidth = invSubspaceCov.transpose().mult(bandwidth).mult(invSubspaceCov);
 		// //system.out.println(bandwidth.get(1,1));
 		return bandwidth;
@@ -398,13 +411,63 @@ public class SampleModel extends MultipleComponentDistribution {
 	public ArrayList<Double> getSubWeights() {
 		ArrayList<Double> weights = new ArrayList<Double>();
 		for (SampleDist d : mSubDistributions)
-			weights.add(d.getWeightSum());
+			weights.add(d.getGlobalWeight());
 		return weights;
 	}
 
 	public void setSubWeights(ArrayList<Double> weights) {
 		for (int i = 0; i < mSubDistributions.size(); i++) {
-			mSubDistributions.get(i).setWeightSum(weights.get(i));
+			mSubDistributions.get(i).setGlobalWeight(weights.get(i));
+		}
+	}
+
+	@Override
+	public double evaluate(SimpleMatrix pointVector) {
+		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
+		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
+		ArrayList<Double> weights = new ArrayList<Double>();
+		means = this.getSubMeans();
+		covs = this.getSubSmoothedCovariances();
+		weights = this.getSubWeights();
+
+		/*
+		 * double[][] dxVector = { { x }, { y } }; SimpleMatrix xVector = new
+		 * SimpleMatrix(dxVector);
+		 */
+		double d = 0d;
+		double n = means.get(0).numRows();
+		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+		for (int i = 0; i < means.size(); i++) {
+			SimpleMatrix m = means.get(i);
+			SimpleMatrix c = covs.get(i);
+			double w = weights.get(i);
+			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
+			d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
+		}
+		return d;
+	}
+
+	/**
+	 * Evaluates the distribution at the given n-dimensional points and returns
+	 * the results in a List of double-values.
+	 * 
+	 * @param points
+	 * @return array of double values
+	 */
+	@Override
+	public ArrayList<Double> evaluate(ArrayList<SimpleMatrix> points) {
+		ArrayList<Double> resultPoints = new ArrayList<Double>();
+		for (SimpleMatrix point : points) {
+			resultPoints.add(evaluate(point));
+		}
+		return resultPoints;
+	}
+
+	@Override
+	public void setBandwidthMatrix(SimpleMatrix mBandwidthMatrix) {
+		this.mBandwidthMatrix = mBandwidthMatrix;
+		for (SampleDist d : mSubDistributions) {
+			d.setBandwidthMatrix(mBandwidthMatrix);
 		}
 	}
 

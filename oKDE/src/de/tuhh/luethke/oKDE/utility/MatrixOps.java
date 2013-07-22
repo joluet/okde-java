@@ -46,9 +46,24 @@ public class MatrixOps {
 		SimpleMatrix matrix = new SimpleMatrix(rows, cols);
 		for (int i = 0; i < rows; i++) {
 			for (int j = 0; j < rows; j++) {
-				matrix.set(i,j,1);
+				matrix.set(i, j, 1);
 			}
 		}
 		return matrix;
+	}
+
+	public static SimpleMatrix doubleListToMatrix(List<Double> valueList) {
+		SimpleMatrix m = new SimpleMatrix(1, valueList.size());
+		for (int i = 0; i < valueList.size(); i++)
+			m.set(0, i, valueList.get(i));
+		return m;
+	}
+
+	public static List<Double> setNegativeValuesToZero(List<Double> valueList) {
+		for (int i = 0; i < valueList.size(); i++) {
+			if (valueList.get(i) < 0)
+				valueList.set(i, 0d);
+		}
+		return valueList;
 	}
 }

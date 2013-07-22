@@ -103,7 +103,7 @@ public class test {
 		SimpleMatrix cov = new SimpleMatrix(c);
 		dist.setGlobalCovariance(cov);
 		dist.setmBandwidthMatrix(cov);*/
-		System.out.println("BW"+dist.getmBandwidthMatrix());
+		System.out.println("BW"+dist.getBandwidthMatrix());
 
 		/*for(int i=0; i<dist.getSubCovariances().size(); i++){
 			dist.setGlobalCovariance(new SimpleMatrix(dist.getmBandwidthMatrix()));
@@ -114,15 +114,7 @@ public class test {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
 		}
-		SampleDist dist0 = new SampleDist(dist);
-		try {
-			MomentMatcher.matchMoments(dist0, true);
-			System.out.println(dist0.getGlobalMean());
-			System.out.println(dist0.getGlobalCovariance());
-		} catch (EmptyDistributionException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		
 		try {
 			dist = Compressor.compress(dist);
 		} catch (Exception e1) {
@@ -130,7 +122,7 @@ public class test {
 			e1.printStackTrace();
 		}
 		for(SampleDist d : dist.getSubDistributions())
-			System.out.println("subdist: "+ d.getGlobalMean() + " "+ d.getGlobalCovariance() + " smoothed"+ d.getmGlobalCovarianceSmoothed() + " " + d.getWeightSum());
+			System.out.println("subdist: "+ d.getGlobalMean() + " "+ d.getGlobalCovariance() + " smoothed"+ d.getmGlobalCovarianceSmoothed() + " " + d.getGlobalWeight());
 		System.out.println("finished");
 
 		/*ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
@@ -271,7 +263,7 @@ public class test {
 	}
 	private static double calculateY(double x, double y, SampleDist dist, ArrayList<SimpleMatrix> means){
 		//ArrayList<SimpleMatrix> means = dist.getMeans();
-		SimpleMatrix bandwidth = dist.getmBandwidthMatrix();
+		SimpleMatrix bandwidth = dist.getBandwidthMatrix();
 	    	//double[][] c = {{1.381236356118853, 1.375256977953836},{1.375256977953837, 1.387215734283870}};
 	    	//SimpleMatrix bandwidth = new SimpleMatrix(c);
 		double[][] dxVector = {{x},{y}};
