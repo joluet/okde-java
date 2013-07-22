@@ -8,8 +8,10 @@ import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
+import de.tuhh.luethke.oKDE.Exceptions.TooManyComponentsException;
 import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.model.ThreeComponentDistribution;
 import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
 
 public class Hellinger {
@@ -20,11 +22,7 @@ public class Hellinger {
 		ThreeComponentDistribution dist0 = mergeSampleDists(dist1, dist2, 0.5, 0.5);
 		// TODO: remove components with negative weights from dist0
 		
-		double wSum=0;
-		for(double w : dist0.getSubWeights()){
-			wSum+=w;
-		}
-		System.out.println("WeightSum: "+wSum);
+		
 		List<SigmaPoint> sigmaPoints = getAllSigmaPoints(dist0, 3);
 		System.out.println("sigmapoints: "+sigmaPoints.size());
 		ArrayList<SimpleMatrix> points = new ArrayList<SimpleMatrix>();
@@ -81,32 +79,43 @@ public class Hellinger {
 		return valueList;
 	}
 	
-	private static SampleDist mergeSampleDists(SampleDist dist1, SampleDist dist2, double w1, double w2) {
-		SampleDist dist = new SampleDist();
-		ArrayList<SimpleMatrix> means = dist2.getSubMeans();
-		means.add(0,dist1.getGlobalMean());
-		ArrayList<SimpleMatrix> covs = dist2.getSubCovariances();
-		covs.add(0,dist1.getGlobalCovariance());
-		ArrayList<Double> weights = dist2.getSubWeights();
-		weights.add(0,1d*w1);
-		for(int i=1; i<weights.size(); i++){
-			weights.set(i, weights.get(i)*w2);
+	private static ThreeComponentDistribution mergeSampleDists(OneComponentDistribution dist1, TwoComponentDistribution dist2, double w1, double w2) {
+		SimpleMatrix[] means = new SimpleMatrix[3];
+		int  i = 0;
+		for(;i<dist2.getSubMeans().length; i++){
+			means[i] = dist2.getSubMeans()[i];
 		}
-		double[] weightArray = new double[weights.size()];
-		for(int i=0; i<weightArray.length; i++){
-			System.out.println(weights.get(i));
-			weightArray[i] = weights.get(i);
+		means[i] = dist1.getGlobalMean();
+
+		SimpleMatrix[] covs = new SimpleMatrix[3];
+		i = 0;
+		for(;i<dist2.getSubCovariances().length; i++){
+			covs[i] = dist2.getSubCovariances()[i];
 		}
-		dist = new SampleDist(weightArray, means.toArray(new SimpleMatrix[0]), covs.toArray(new SimpleMatrix[0]));
-		dist.setSubWeights(weights);
+		covs[i] = dist1.getGlobalCovariance();
+		
+		double[] weights = new double[3];
+		i = 0;
+		for(;i<dist2.getSubWeights().length; i++){
+			weights[i] = dist2.getSubWeights()[i] * w2;
+		}
+		weights[i] = dist1.getWeightSum() * w1;
+
+		ThreeComponentDistribution dist = null;
+		try {
+			dist = new ThreeComponentDistribution(weights, means, covs);
+		} catch (TooManyComponentsException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		return dist;
 	}
 
-	public static List<SigmaPoint> getAllSigmaPoints(SampleDist distribution, int max) throws Exception {
+	public static List<SigmaPoint> getAllSigmaPoints(ThreeComponentDistribution distribution, int max) throws Exception {
 		ArrayList<SigmaPoint> sigmaPoints = new ArrayList<SigmaPoint>();
-		int noOfComponents = distribution.getSubMeans().size();
-		int dim = distribution.getSubMeans().get(0).numRows();
+		int noOfComponents = distribution.getSubMeans().length;
+		int dim = distribution.getSubMeans()[0].numRows();
 		int k = max - dim;
 		int noOfSigmaPoints;
 		if (k != 0)
@@ -132,10 +141,10 @@ public class Hellinger {
 			throw new Exception("Weights in the unscented transform should sum to one!");
 
 		for (int i = 0; i < noOfComponents; i++) {
-			List<SimpleMatrix> x = getSigmaPoints(distribution.getSubMeans().get(i), distribution.getSubCovariances().get(i),
+			List<SimpleMatrix> x = getSigmaPoints(distribution.getSubMeans()[i], distribution.getSubCovariances()[i],
 					noOfSigmaPoints, k);
 			int count = 0;
-			double componentWeight = distribution.getSubWeights().get(i);
+			double componentWeight = distribution.getSubWeights()[i];
 			for(SimpleMatrix m : x){
 				sigmaPoints.add(new SigmaPoint(m, weights.get(count)*componentWeight, weights.get(count)));
 				count++;

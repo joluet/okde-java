@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
+import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.SampleModel;
 import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
 
@@ -53,7 +54,8 @@ public class Compressor {
 			//twoCompDist.updateDistribution(meansArray, covarianceArray, weightsArray);
 			MomentMatcher.matchMoments(twoCompDist, false);
 			twoCompDist.setmGlobalCovarianceSmoothed(twoCompDist.getGlobalCovariance());
-			ret.compressionError = Hellinger.calculateUnscentedHellingerDistance(twoCompDist, twoCompDist);
+			OneComponentDistribution oneCompDist = new OneComponentDistribution(twoCompDist);
+			ret.compressionError = Hellinger.calculateUnscentedHellingerDistance(oneCompDist, twoCompDist);
 		} catch (EmptyDistributionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
