@@ -7,27 +7,30 @@ import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
+import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.model.SampleModel;
+import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
 
 /**
- * This class transforms a sample distribution that is lying in a degenerate space
- * into the non-degenerate subspace by projecting 
+ * This class transforms a sample distribution that is lying in a degenerate
+ * space into the non-degenerate subspace by projecting
  * 
  * @author Jonas Luethke
- *
+ * 
  */
 public class Projector {
 	private static final double MIN_VALUE = 1E-7d;
 
 	private static final double CONST_SMALL_FACTOR = 1E-10d;
-	
+
 	/**
 	 * Forward transform a sample distribution
 	 * 
 	 * @param distribution
 	 * @throws EmptyDistributionException
 	 */
-	public static void projectSampleDistToSubspace(SampleDist distribution) throws EmptyDistributionException {
+	public static void projectSampleDistToSubspace(SampleModel distribution) throws EmptyDistributionException {
 		MomentMatcher.matchMoments(distribution, true);
 		SimpleMatrix globalCov = distribution.getGlobalCovariance();
 		SimpleMatrix globalMean = distribution.getGlobalMean();
@@ -70,7 +73,6 @@ public class Projector {
 					validElements[i] = s.get(i, 0);
 			}
 
-			
 			// create inverse matrix of S
 			S = MatrixOps.elemPow(S, -1);
 			invS = SimpleMatrix.identity(d).scale(0);
@@ -89,16 +91,28 @@ public class Projector {
 
 		List<SampleDist> subDistributions = distribution.getSubDistributions();
 		for (int i = 0; i < subDistributions.size(); i++) {
-			List<SimpleMatrix> subSubMeans = subDistributions.get(i).getSubMeans();
-			List<SimpleMatrix> subSubCovs = subDistributions.get(i).getSubSmoothedCovariances();
-			if (subSubMeans.size() > 0)
-				for (int j = 0; j < subSubMeans.size(); j++) {
-					subSubCovs.set(j, transformMatrix(trnsF, subSubCovs.get(j), validElements, countValidElements));
-					SimpleMatrix tmp = trnsF.mult(subSubMeans.get(i).minus(globalMean));
+			SimpleMatrix[] subSubMeans = new SimpleMatrix[1];
+			SimpleMatrix[] subSubCovs = new SimpleMatrix[1];
+			if (subDistributions.get(i).getClass() == TwoComponentDistribution.class) {
+				TwoComponentDistribution subDist = (TwoComponentDistribution) subDistributions.get(i);
+				subSubMeans = subDist.getSubMeans();
+				subSubCovs = subDist.getSubSmoothedCovariances();
+			} else {
+				OneComponentDistribution subDist = (OneComponentDistribution) subDistributions.get(i);
+				subSubMeans[1] = subDist.getGlobalMean();
+				subSubCovs[1] = subDist.getmGlobalCovarianceSmoothed();
+			}
+			if (subSubMeans.length > 1) {
+				for (int j = 0; j < subSubMeans.length; j++) {
+					subSubCovs[j] = transformMatrix(trnsF, subSubCovs[j], validElements, countValidElements);
+					SimpleMatrix tmp = trnsF.mult(subSubMeans[i].minus(globalMean));
 					tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements));
-					subSubMeans.set(i, tmp);
+					subSubMeans[i] = tmp;
 				}
-			else {
+				((TwoComponentDistribution) subDistributions.get(i)).setSubMeans(subSubMeans[0], subSubMeans[1]);
+				((TwoComponentDistribution) subDistributions.get(i)).setSubCovariances(subSubCovs[0], subSubCovs[1]);
+				MomentMatcher.matchMoments(((TwoComponentDistribution) subDistributions.get(i)), true);
+			} else {
 				SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();
 				SimpleMatrix subCov = subDistributions.get(i).getmGlobalCovarianceSmoothed();
 				SimpleMatrix tmp = trnsF.mult(subMean.minus(globalMean));
@@ -106,7 +120,6 @@ public class Projector {
 				subDistributions.get(i).setGlobalMean(tmp);
 				subDistributions.get(i).setmGlobalCovarianceSmoothed(transformMatrix(trnsF, subCov, validElements, countValidElements));
 			}
-			MomentMatcher.matchMoments(subDistributions.get(i), true);
 			SimpleMatrix subCov = subDistributions.get(i).getGlobalCovariance();
 			subDistributions.get(i).setmGlobalCovarianceSmoothed(subCov.plus(trnsBandwidthMatrix));
 		}

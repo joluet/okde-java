@@ -1,17 +1,19 @@
 package de.tuhh.luethke.oKDE.utility;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
 import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
-import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.model.SampleModel;
+import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
 
 public class Compressor {
 	private final static double D_TH = 0.02;
 
-	public static SampleDist compress(SampleDist dist) {
-		SampleDist compression = mergeTwoClosestComps(dist);
+	public static SampleModel compress(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
+		SampleModel compression = mergeTwoClosestComps(dist);
 		while (compression.compressionError < D_TH) {
 			dist = compression;
 			compression = mergeTwoClosestComps(dist);
@@ -19,9 +21,9 @@ public class Compressor {
 		return dist;
 	}
 
-	private static SampleDist mergeTwoClosestComps(SampleDist dist) {
-		SampleDist ret = new SampleDist(dist);
-		SampleDist twoCompDist = null;// = new SampleDist();
+	private static SampleModel mergeTwoClosestComps(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
+		SampleModel ret = new SampleModel(dist);
+		TwoComponentDistribution twoCompDist = null;// = new SampleDist();
 		ArrayList<SimpleMatrix> means = ret.getSubMeans();
 		ArrayList<SimpleMatrix> covs = ret.getSubSmoothedCovariances();
 		ArrayList<Double> weights = ret.getSubWeights();
@@ -47,7 +49,7 @@ public class Compressor {
 		SimpleMatrix[] covarianceArray = {covs.get(indexComp1), covs.get(indexComp2)};
 		double[] weightsArray = {weights.get(indexComp1), weights.get(indexComp2)};
 		try {
-			twoCompDist = new SampleDist(weightsArray, meansArray, covarianceArray);
+			twoCompDist = new TwoComponentDistribution(weightsArray, meansArray, covarianceArray);
 			//twoCompDist.updateDistribution(meansArray, covarianceArray, weightsArray);
 			MomentMatcher.matchMoments(twoCompDist, false);
 			twoCompDist.setmGlobalCovarianceSmoothed(twoCompDist.getGlobalCovariance());

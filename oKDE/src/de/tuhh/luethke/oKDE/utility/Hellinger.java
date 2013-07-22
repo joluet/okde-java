@@ -8,14 +8,16 @@ import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
+import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
 
 public class Hellinger {
 
 	private static final double MIN_TOL = 1e-5;
 
-	public static double calculateUnscentedHellingerDistance(SampleDist dist1, SampleDist dist2) throws Exception {
-		SampleDist dist0 = mergeSampleDists(dist1, dist2, 0.5, 0.5);
+	public static double calculateUnscentedHellingerDistance(OneComponentDistribution dist1, TwoComponentDistribution dist2) throws Exception {
+		ThreeComponentDistribution dist0 = mergeSampleDists(dist1, dist2, 0.5, 0.5);
 		// TODO: remove components with negative weights from dist0
 		
 		double wSum=0;

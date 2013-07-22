@@ -13,10 +13,10 @@ import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.model.SampleModel;
 import de.tuhh.luethke.oKDE.utility.Compressor;
-import de.tuhh.luethke.oKDE.utility.Hellinger;
-import de.tuhh.luethke.oKDE.utility.Projector;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
+import de.tuhh.luethke.oKDE.utility.Projector;
 
 public class test {
 
@@ -25,7 +25,7 @@ public class test {
 	 */
 	public static void main(String[] args) {
 		System.out.println("Start Testing!");
-		SampleDist dist = new SampleDist();
+		SampleModel dist = new SampleModel();
 		
 		System.out.println("Test intsqrd");
 		
