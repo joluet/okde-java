@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
-import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
 import de.tuhh.luethke.oKDE.utility.Hellinger;
 
 public class TestCompression {
@@ -14,7 +14,7 @@ public class TestCompression {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		SampleDist distribution = new SampleDist();
+		BaseSampleDistribution distribution = new BaseSampleDistribution();
 		double[][] mean1 = {{0},{0}};
 		double[][] mean2 = {{0.810488643593117},{0.658276986625753}};
 		double[][] mean3 = {{0.810488643593117},{0.658276986625753}};

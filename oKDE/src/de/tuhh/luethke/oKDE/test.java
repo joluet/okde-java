@@ -12,10 +12,11 @@ import java.util.ArrayList;
 import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
-import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
 import de.tuhh.luethke.oKDE.model.SampleModel;
 import de.tuhh.luethke.oKDE.utility.Compressor;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
+import de.tuhh.luethke.oKDE.utility.ProjectionData;
 import de.tuhh.luethke.oKDE.utility.Projector;
 
 public class test {
@@ -108,8 +109,9 @@ public class test {
 		/*for(int i=0; i<dist.getSubCovariances().size(); i++){
 			dist.setGlobalCovariance(new SimpleMatrix(dist.getmBandwidthMatrix()));
 		}*/
+		ProjectionData projectionData = null;
 		try {
-		    Projector.projectSampleDistToSubspace(dist);
+		    projectionData = Projector.projectSampleDistToSubspace(dist);
 		} catch (EmptyDistributionException e) {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
@@ -121,7 +123,13 @@ public class test {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		for(SampleDist d : dist.getSubDistributions())
+		try {
+			Projector.projectSampleDistToOriginalSpace(dist, projectionData);
+		} catch (EmptyDistributionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		for(BaseSampleDistribution d : dist.getSubDistributions())
 			System.out.println("subdist: "+ d.getGlobalMean() + " "+ d.getGlobalCovariance() + " smoothed"+ d.getmGlobalCovarianceSmoothed() + " " + d.getGlobalWeight());
 		System.out.println("finished");
 
@@ -261,7 +269,7 @@ public class test {
 		
 		//System.out.println(I);
 	}
-	private static double calculateY(double x, double y, SampleDist dist, ArrayList<SimpleMatrix> means){
+	private static double calculateY(double x, double y, BaseSampleDistribution dist, ArrayList<SimpleMatrix> means){
 		//ArrayList<SimpleMatrix> means = dist.getMeans();
 		SimpleMatrix bandwidth = dist.getBandwidthMatrix();
 	    	//double[][] c = {{1.381236356118853, 1.375256977953836},{1.375256977953837, 1.387215734283870}};
@@ -282,7 +290,7 @@ public class test {
         	return z;
         }*/
     
-        public static double[][] calculateY(double[] x, double[] y, SampleDist dist, ArrayList<SimpleMatrix> means) {
+        public static double[][] calculateY(double[] x, double[] y, BaseSampleDistribution dist, ArrayList<SimpleMatrix> means) {
         	double[][] z = new double[y.length][x.length];
         	for (int i = 0; i < x.length; i++)
         	    for (int j = 0; j < y.length; j++)

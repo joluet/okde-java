@@ -6,7 +6,7 @@ import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.NoOfArgumentsException;
 
-abstract public class MultipleComponentDistribution extends SampleDist {
+abstract public class MultipleComponentDistribution extends BaseSampleDistribution {
 
 	// component distributions
 	private OneComponentDistribution[] mSubDistributions;
@@ -129,7 +129,7 @@ abstract public class MultipleComponentDistribution extends SampleDist {
 	@Override
 	public void setBandwidthMatrix(SimpleMatrix mBandwidthMatrix) {
 		this.mBandwidthMatrix = mBandwidthMatrix;
-		for(SampleDist d : mSubDistributions){
+		for(BaseSampleDistribution d : mSubDistributions){
 			d.setBandwidthMatrix(mBandwidthMatrix);
 		}
 	}

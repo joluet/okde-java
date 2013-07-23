@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 import org.ejml.simple.SimpleMatrix;
 
-public class OneComponentDistribution extends SampleDist {
+public class OneComponentDistribution extends BaseSampleDistribution {
 
 	public OneComponentDistribution(double w, SimpleMatrix mean, SimpleMatrix covariance) {
 		super();
@@ -34,6 +34,9 @@ public class OneComponentDistribution extends SampleDist {
 		this.mGlobalWeight = twoComponentDistribution.getGlobalWeight();
 	}
 
+	/**
+	 * @see de.tuhh.luethke.oKDE.model.BaseSampleDistribution#evaluate(SimpleMatrix pointVector)
+	 */
 	@Override
 	public double evaluate(SimpleMatrix pointVector) {
 		double d = 0d;
@@ -46,11 +49,7 @@ public class OneComponentDistribution extends SampleDist {
 	}
 
 	/**
-	 * Evaluates the distribution at the given n-dimensional points and returns
-	 * the results in a List of double-values.
-	 * 
-	 * @param points
-	 * @return array of double values
+	 * @see de.tuhh.luethke.oKDE.model.BaseSampleDistribution#evaluate(ArrayList<SimpleMatrix> points)
 	 */
 	@Override
 	public ArrayList<Double> evaluate(ArrayList<SimpleMatrix> points) {

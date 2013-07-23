@@ -4,7 +4,13 @@ import java.util.ArrayList;
 
 import org.ejml.simple.SimpleMatrix;
 
-public abstract class SampleDist {
+/**
+ * This is the abstract base class for sample distributions.
+ * 
+ * @author Jonas Luethke
+ *
+ */
+public abstract class BaseSampleDistribution {
 
 	// bandwidth matrix
 	protected SimpleMatrix mBandwidthMatrix;
@@ -24,12 +30,13 @@ public abstract class SampleDist {
 	// overall inverse covariance in subspace
 	protected SimpleMatrix mSubspaceInverseCovariance;
 
+	// forgetting factor, to be used for non-stationary distributions
 	protected double mForgettingFactor;
 
 	/**
 	 * Create new SampleDist
 	 */
-	public SampleDist() {
+	public BaseSampleDistribution() {
 		super();
 		mGlobalWeight = 0;
 		mForgettingFactor = 1;
@@ -73,14 +80,21 @@ public abstract class SampleDist {
 		this.mSubspaceInverseCovariance = subspaceInverseCovariance;
 	}
 
+	/**
+	 * Evaluates the distribution at the given n-dimensional point and returns
+	 * the result as a double-value.
+	 * 
+	 * @param point point to evaluate
+	 * @return result as double value
+	 */
 	abstract public double evaluate(SimpleMatrix pointVector);
 
 	/**
 	 * Evaluates the distribution at the given n-dimensional points and returns
 	 * the results in a List of double-values.
 	 * 
-	 * @param points
-	 * @return array of double values
+	 * @param points points to evaluate
+	 * @return result as array of double values
 	 */
 	abstract public ArrayList<Double> evaluate(ArrayList<SimpleMatrix> points);
 

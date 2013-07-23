@@ -33,8 +33,8 @@ public class MatrixOps {
 		return matrix;
 	}
 
-	public static SimpleMatrix deleteElementsFromVector(SimpleMatrix vector, List<Double> elements) {
-		SimpleMatrix newVector = new SimpleMatrix(elements.size(), 1);
+	public static SimpleMatrix deleteElementsFromVector(SimpleMatrix vector, List<Double> elements, int vectorSize) {
+		SimpleMatrix newVector = new SimpleMatrix(vectorSize, 1);
 		int j = 0;
 		for (int i = 0; i < vector.numRows(); i++)
 			if (elements.get(i) == 1)
