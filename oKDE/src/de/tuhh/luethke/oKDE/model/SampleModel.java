@@ -11,15 +11,23 @@ import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
+import de.tuhh.luethke.oKDE.utility.Compressor;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
+import de.tuhh.luethke.oKDE.utility.ProjectionData;
+import de.tuhh.luethke.oKDE.utility.Projector;
 
 public class SampleModel extends BaseSampleDistribution {
+
+	private static final float DEFAULT_NO_OF_COMPS_THRES = 6;
 
 	// effective number of observed samples
 	protected double mEffectiveNoOfSamples;
 
 	// component distributions
 	protected ArrayList<BaseSampleDistribution> mSubDistributions;
+
+	// threshold to determine when compression is necessary
+	private float mNoOfCompsThreshold;
 
 	public SampleModel() {
 		super();
@@ -32,6 +40,7 @@ public class SampleModel extends BaseSampleDistribution {
 		this.mSubspaceInverseCovariance = null;
 		this.mGlobalWeight = 0;
 		this.mEffectiveNoOfSamples = 0;
+		mNoOfCompsThreshold = DEFAULT_NO_OF_COMPS_THRES;
 	}
 
 	/**
@@ -46,6 +55,32 @@ public class SampleModel extends BaseSampleDistribution {
 	 * @throws IllegalArgumentException
 	 */
 	public SampleModel(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException,
+			InstantiationException, IllegalAccessException {
+		List<BaseSampleDistribution> subDists = dist.getSubDistributions();
+		ArrayList<BaseSampleDistribution> copy = new ArrayList<BaseSampleDistribution>();
+		// copy the list of sub components
+		for (BaseSampleDistribution d : subDists) {
+			// We don't know if a sub component is of type
+			// OneComponentDistribution or TwoComponentDistribution.
+			// Thus we have to call the constructor using reflection api. This
+			// way it is generic and works in both cases.
+			Constructor<? extends BaseSampleDistribution> ctor = d.getClass().getDeclaredConstructor(d.getClass());
+			ctor.setAccessible(true);
+			BaseSampleDistribution tmp = (BaseSampleDistribution) ctor.newInstance(d);
+			copy.add(tmp);
+		}
+		this.mSubDistributions = copy;
+		this.mBandwidthMatrix = dist.getBandwidthMatrix();
+		this.mGlobalCovariance = dist.getGlobalCovariance();
+		this.mGlobalMean = dist.getGlobalMean();
+		this.mSubspace = dist.getmSubspace();
+		this.mSubspaceGlobalCovariance = dist.getSubspaceGlobalCovariance();
+		this.mSubspaceInverseCovariance = dist.getSubspaceInverseCovariance();
+		this.mGlobalWeight = dist.getGlobalWeight();
+		this.mEffectiveNoOfSamples = dist.mEffectiveNoOfSamples;
+	}
+
+	public void overWirite(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException,
 			InstantiationException, IllegalAccessException {
 		List<BaseSampleDistribution> subDists = dist.getSubDistributions();
 		ArrayList<BaseSampleDistribution> copy = new ArrayList<BaseSampleDistribution>();
@@ -92,8 +127,16 @@ public class SampleModel extends BaseSampleDistribution {
 	 * @param doubles
 	 * @throws EmptyDistributionException
 	 *             Exception is thrown when one parameter is null or empty
+	 * @throws IllegalAccessException
+	 * @throws InstantiationException
+	 * @throws SecurityException
+	 * @throws NoSuchMethodException
+	 * @throws InvocationTargetException
+	 * @throws IllegalArgumentException
 	 */
-	public void updateDistribution(SimpleMatrix[] means, SimpleMatrix[] covariances, double[] doubles) throws EmptyDistributionException {
+	public void updateDistribution(SimpleMatrix[] means, SimpleMatrix[] covariances, double[] doubles) throws EmptyDistributionException,
+			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException,
+			IllegalAccessException {
 		// at first check input parameters!
 		checkInputParams(means, covariances, doubles);
 
@@ -144,6 +187,7 @@ public class SampleModel extends BaseSampleDistribution {
 			mGlobalCovariance = new SimpleMatrix(2, 2);
 			System.out.println("globcov null");
 		}
+		Compressor.compress(this);
 	}
 
 	private void checkInputParams(SimpleMatrix[] means, SimpleMatrix[] covariances, double[] weights) throws EmptyDistributionException {
@@ -163,18 +207,23 @@ public class SampleModel extends BaseSampleDistribution {
 	 */
 	private void addDistributions(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances) {
 		double sumOfNewWeights = 0;
+		int numberOfActualComps = getSubDistributions().size();
 		for (int i = 0; i < weights.length; i++) {
 			sumOfNewWeights += weights[i];
 			mSubDistributions.add(new OneComponentDistribution(weights[i], means[i], covariances[i]));
 		}
+		
 
-		mEffectiveNoOfSamples = mEffectiveNoOfSamples * mForgettingFactor + weights.length;
 
 		// calculate mixing weights for old and new weights
-		double mixWeightOld = mGlobalWeight / (mGlobalWeight * mForgettingFactor + sumOfNewWeights);
-		double mixWeightNew = sumOfNewWeights / (mGlobalWeight * mForgettingFactor + sumOfNewWeights);
+		double mixWeightOld = mEffectiveNoOfSamples / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
+		double mixWeightNew = sumOfNewWeights / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
+		
+		mEffectiveNoOfSamples = mEffectiveNoOfSamples * mForgettingFactor + weights.length;
 
-		mGlobalWeight = mGlobalWeight * mForgettingFactor + sumOfNewWeights;
+
+		//mGlobalWeight = mGlobalWeight * mForgettingFactor + sumOfNewWeights;
+		mGlobalWeight = mixWeightOld + mixWeightNew;
 
 		for (int i = 0; i < mSubDistributions.size() - weights.length; i++) {
 			double tmpWeight = mSubDistributions.get(i).getGlobalWeight();
@@ -184,6 +233,7 @@ public class SampleModel extends BaseSampleDistribution {
 			double tmpWeight = mSubDistributions.get(i).getGlobalWeight();
 			mSubDistributions.get(i).setGlobalWeight(tmpWeight * mixWeightNew * (1d / weights.length));
 		}
+		//mEffectiveNoOfSamples = mSubDistributions.size();
 	}
 
 	private static SampleModel projectToSubspace(SampleModel dist) throws EmptyDistributionException, IllegalArgumentException,
@@ -434,4 +484,11 @@ public class SampleModel extends BaseSampleDistribution {
 		}
 	}
 
+	public void setNoOfCompsThreshold(float threshold) {
+		mNoOfCompsThreshold = threshold;
+	}
+
+	public float getNoOfCompsThreshold() {
+		return this.mNoOfCompsThreshold;
+	}
 }

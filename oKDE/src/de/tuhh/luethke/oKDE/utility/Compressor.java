@@ -13,14 +13,35 @@ import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
 public class Compressor {
 	private final static double D_TH = 0.02;
 
-	public static SampleModel compress(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
+	private static final float INC_TH_SCALE = 1.5f;
+	private static final float DEC_TH_SCALE = 0.6f;
+	private static final float CHECK_IF_DEC_SCALE = 0.5f;
+	
+	private static void setNoOfComponentsThreshold(SampleModel dist, int noOfCompsBeforeCompression, int noOfCompsAfterCompression){
+		float threshold = dist.getNoOfCompsThreshold();
+		if(noOfCompsAfterCompression > threshold)
+			threshold = threshold*INC_TH_SCALE;
+		else if(noOfCompsAfterCompression <= threshold*CHECK_IF_DEC_SCALE)
+			threshold = threshold*DEC_TH_SCALE;
+		dist.setNoOfCompsThreshold(threshold);
+	}
+	
+	public static void compress(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, EmptyDistributionException {
+		//check wether compression is necessary using hysteresis rule
+		if(dist.getSubMeans().size() <= dist.getNoOfCompsThreshold())
+			return;
+		ProjectionData projectionData = Projector.projectSampleDistToSubspace(dist);
+		System.out.println("COMPRESS");
+		int noOfCompsBeforeCompression = dist.getSubMeans().size();
 		SampleModel inputModelCopy = new SampleModel(dist);
-		double compressionError = mergeTwoClosestComps(dist);
+		double compressionError = mergeTwoClosestComps(inputModelCopy);
 		while (compressionError < D_TH) {
-			inputModelCopy = new SampleModel(dist);
-			compressionError = mergeTwoClosestComps(dist);
+			dist.overWirite(inputModelCopy);
+			compressionError = mergeTwoClosestComps(inputModelCopy);
 		}
-		return inputModelCopy;
+		Projector.projectSampleDistToOriginalSpace(dist, projectionData);
+		int noOfCompsAfterCompression = dist.getSubMeans().size();
+		setNoOfComponentsThreshold(dist, noOfCompsBeforeCompression, noOfCompsAfterCompression);
 	}
 
 	private static double mergeTwoClosestComps(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException {
@@ -62,6 +83,11 @@ public class Compressor {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		Double[] subWeights = twoCompDist.getSubWeights();
+		double newWeight1 = subWeights[0]/(subWeights[0]+subWeights[1]);
+		double newWeight2 = subWeights[1]/(subWeights[0]+subWeights[1]);
+		twoCompDist.getSubComponents()[0].setGlobalWeight(newWeight1);
+		twoCompDist.getSubComponents()[1].setGlobalWeight(newWeight2);
 		dist.getSubDistributions().set(indexComp2,twoCompDist);
 		dist.getSubDistributions().remove(indexComp1);
 		return compressionError;

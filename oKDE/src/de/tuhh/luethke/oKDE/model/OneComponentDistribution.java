@@ -12,7 +12,7 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 		mGlobalMean = mean;
 		mGlobalCovariance = covariance;
 		// initialize bandwidth matrix to zero
-		mBandwidthMatrix = new SimpleMatrix(covariance).scale(0);
+		mBandwidthMatrix = new SimpleMatrix(covariance.numRows(), covariance.numRows()).scale(0);
 		mForgettingFactor = 1;
 	}
 

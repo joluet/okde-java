@@ -119,7 +119,7 @@ public class Projector {
 					// only contain subcomponents with at most 2 components
 					e.printStackTrace();
 				}
-				MomentMatcher.matchMoments(((TwoComponentDistribution) subDistributions.get(i)));
+				//MomentMatcher.matchMoments(((TwoComponentDistribution) subDistributions.get(i)));
 			}
 			// transform subcomponents
 			SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();

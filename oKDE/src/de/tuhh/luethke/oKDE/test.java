@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
 import org.ejml.simple.SimpleMatrix;
@@ -30,7 +31,7 @@ public class test {
 		
 		System.out.println("Test intsqrd");
 		
-		
+		//  1 1.5 1.5 5 5.5 4.5 5 4.5;  1 1 1.5 5 5.5 4.5 4.5 5];
 		//double[][] dMu = {{1.18835013453899,0.0698038241915721,-1.25815395873056},{0.766696783442554,-1.41248979682270,0.645793013380147}};
 		double[][] mean1 = {{1},{1}};
 		double[][] mean2 = {{1},{1}};
@@ -39,6 +40,16 @@ public class test {
 		double[][] mean5 = {{5},{5}};
 		double[][] mean6 = {{5.5},{5.5}};
 		double[][] mean7 = {{4.5},{4.5}};
+		double[][] mean8 = {{5},{4.5}};
+		double[][] mean9 = {{4.5},{5}};
+		double[][] mean10 = {{1},{1}};
+		double[][] mean11 = {{1.5},{1}};
+		double[][] mean12 = {{1.5},{1.5}};
+		double[][] mean13 = {{5},{5}};
+		double[][] mean14 = {{5.5},{5.5}};
+		double[][] mean15 = {{4.5},{4.5}};
+		double[][] mean16 = {{5},{4.5}};
+		double[][] mean17 = {{4.5},{5}};
 		/*
 		double[][] mean7 = {{5},{4.5}};
 		double[][] mean8 = {{4.5},{5}};
@@ -93,10 +104,58 @@ public class test {
 			double[] w4= {1};
 			SimpleMatrix[] cov4 = {new SimpleMatrix(c)};
 		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov4, w4);
+		    
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean8));
+			double[] w5= {1};
+			SimpleMatrix[] cov5 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov5, w5);
+		    
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean9));
+			double[] w6= {1};
+			SimpleMatrix[] cov6 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov6, w6);
+		    
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean10));
+			double[] w7= {1};
+			SimpleMatrix[] cov7 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov7, w7);
+		    
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean11));
+			double[] w8= {1};
+			SimpleMatrix[] cov8 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov8, w8);
+		    
+		    means = new ArrayList<SimpleMatrix>();
+			means.add(new SimpleMatrix(mean12));
+			double[] w9= {1};
+			SimpleMatrix[] cov9 = {new SimpleMatrix(c)};
+		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov9, w9);
 
 		} catch (EmptyDistributionException e) {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		System.out.println("---------------------------------------");
 		/*dist = new SampleDist();
@@ -109,26 +168,8 @@ public class test {
 		/*for(int i=0; i<dist.getSubCovariances().size(); i++){
 			dist.setGlobalCovariance(new SimpleMatrix(dist.getmBandwidthMatrix()));
 		}*/
-		ProjectionData projectionData = null;
-		try {
-		    projectionData = Projector.projectSampleDistToSubspace(dist);
-		} catch (EmptyDistributionException e) {
-		    // TODO Auto-generated catch block
-		    e.printStackTrace();
-		}
+
 		
-		try {
-			dist = Compressor.compress(dist);
-		} catch (Exception e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		try {
-			Projector.projectSampleDistToOriginalSpace(dist, projectionData);
-		} catch (EmptyDistributionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		for(BaseSampleDistribution d : dist.getSubDistributions())
 			System.out.println("subdist: "+ d.getGlobalMean() + " "+ d.getGlobalCovariance() + " smoothed"+ d.getmGlobalCovarianceSmoothed() + " " + d.getGlobalWeight());
 		System.out.println("finished");
