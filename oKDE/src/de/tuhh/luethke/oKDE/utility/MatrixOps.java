@@ -66,4 +66,24 @@ public class MatrixOps {
 		}
 		return valueList;
 	}
+	
+	public static double maxVectorElement(SimpleMatrix matrix){
+		double d = Double.MIN_VALUE;
+		for (int i = 0; i < matrix.numRows(); i++) {
+				if(matrix.get(i,0)>d)
+					d = matrix.get(i,0);
+		}
+		return d;
+	}
+	public static int maxVectorElementIndex(SimpleMatrix matrix){
+		double d = Double.MIN_VALUE;
+		int row = 0;
+		for (int i = 0; i < matrix.numRows(); i++) {
+				if(matrix.get(i,0)>d){
+					d = matrix.get(i,0);
+					row = i;
+				}
+		}
+		return row;
+	}
 }

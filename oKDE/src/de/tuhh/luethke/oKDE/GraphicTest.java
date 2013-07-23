@@ -11,6 +11,7 @@ import org.math.plot.Plot3DPanel;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.SampleDist;
+import de.tuhh.luethke.oKDE.model.SampleModel;
 
 public class GraphicTest extends JFrame {
 
@@ -29,7 +30,7 @@ public class GraphicTest extends JFrame {
         setLocationRelativeTo(null);
         
         
-        SampleDist dist = new SampleDist();
+        SampleModel dist = new SampleModel();
 	ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();
 	double[][] c = {{0.0}};
 	cov1.add(new SimpleMatrix(c));
@@ -84,7 +85,7 @@ public class GraphicTest extends JFrame {
         for (int i = 0; i < 1500; i++) {
             x += 0.01;
             xArray[i] = x;
-            double y = calculateY(x, dist, means);
+            double y = dist.evaluate(x);
             yArray[i] = y;
             //Point2D.Double point = new Point2D.Double(x, y);
             //System.out.println("x "+x+" | y "+y);
@@ -95,7 +96,7 @@ public class GraphicTest extends JFrame {
 	Plot3DPanel plot = new Plot3DPanel();
 	 
 	// add a line plot to the PlotPanel
-	plot.add.addLinePlot("my plot", xArray, yArray);
+	plot.addLinePlot("my plot", xArray, yArray);
 	
 	setContentPane(plot);
     }

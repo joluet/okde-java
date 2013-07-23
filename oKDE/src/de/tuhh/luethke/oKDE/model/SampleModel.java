@@ -134,15 +134,29 @@ public class SampleModel extends BaseSampleDistribution {
 	 * @throws InvocationTargetException
 	 * @throws IllegalArgumentException
 	 */
-	public void updateDistribution(SimpleMatrix[] means, SimpleMatrix[] covariances, double[] doubles) throws EmptyDistributionException,
+	public void updateDistribution(SimpleMatrix[] means, SimpleMatrix[] covariances, double[] weights) throws EmptyDistributionException,
 			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException,
 			IllegalAccessException {
 		// at first check input parameters!
-		checkInputParams(means, covariances, doubles);
+		checkInputParams(means, covariances, weights);
 
 		// augment distribution
-		addDistributions(doubles, means, covariances);
+		addDistributions(weights, means, covariances);
 
+		updateDistribution();
+	}
+
+	public void updateDistribution(SimpleMatrix mean, SimpleMatrix covariance, double weight) throws EmptyDistributionException,
+			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException,
+			IllegalAccessException {
+
+		// augment distribution
+		addDistribution(weight, mean, covariance);
+
+		updateDistribution();
+	}
+
+	private void updateDistribution() {
 		List<BaseSampleDistribution> subDists = getSubDistributions();
 		Double[] weights = new Double[subDists.size()];
 		for (int i = 0; i < subDists.size(); i++)
@@ -169,9 +183,11 @@ public class SampleModel extends BaseSampleDistribution {
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (EmptyDistributionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		// reestimate bandwidth as explained in oKDE paper
-
 		double bandwidthFactor = reestimateBandwidth(subSpaceDist.getSubMeans().toArray(new SimpleMatrix[0]), subSpaceDist.getSubCovariances()
 				.toArray(new SimpleMatrix[0]), weights, subSpaceDist.getSubspaceGlobalCovariance(), mEffectiveNoOfSamples);
 		System.out.println("BANDW" + bandwidthFactor);
@@ -187,7 +203,12 @@ public class SampleModel extends BaseSampleDistribution {
 			mGlobalCovariance = new SimpleMatrix(2, 2);
 			System.out.println("globcov null");
 		}
-		Compressor.compress(this);
+		try {
+			Compressor.compress(this);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	private void checkInputParams(SimpleMatrix[] means, SimpleMatrix[] covariances, double[] weights) throws EmptyDistributionException {
@@ -207,22 +228,18 @@ public class SampleModel extends BaseSampleDistribution {
 	 */
 	private void addDistributions(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances) {
 		double sumOfNewWeights = 0;
-		int numberOfActualComps = getSubDistributions().size();
 		for (int i = 0; i < weights.length; i++) {
 			sumOfNewWeights += weights[i];
 			mSubDistributions.add(new OneComponentDistribution(weights[i], means[i], covariances[i]));
 		}
-		
-
 
 		// calculate mixing weights for old and new weights
 		double mixWeightOld = mEffectiveNoOfSamples / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
 		double mixWeightNew = sumOfNewWeights / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
-		
+
 		mEffectiveNoOfSamples = mEffectiveNoOfSamples * mForgettingFactor + weights.length;
 
-
-		//mGlobalWeight = mGlobalWeight * mForgettingFactor + sumOfNewWeights;
+		// mGlobalWeight = mGlobalWeight * mForgettingFactor + sumOfNewWeights;
 		mGlobalWeight = mixWeightOld + mixWeightNew;
 
 		for (int i = 0; i < mSubDistributions.size() - weights.length; i++) {
@@ -233,7 +250,38 @@ public class SampleModel extends BaseSampleDistribution {
 			double tmpWeight = mSubDistributions.get(i).getGlobalWeight();
 			mSubDistributions.get(i).setGlobalWeight(tmpWeight * mixWeightNew * (1d / weights.length));
 		}
-		//mEffectiveNoOfSamples = mSubDistributions.size();
+		// mEffectiveNoOfSamples = mSubDistributions.size();
+	}
+
+	/**
+	 * Takes new incoming sample weights and updates this distribution using a
+	 * forgetting factor.
+	 * 
+	 * @param weights
+	 */
+	private void addDistribution(double weight, SimpleMatrix mean, SimpleMatrix covariance) {
+		double sumOfNewWeights = 0;
+		sumOfNewWeights += weight;
+		mSubDistributions.add(new OneComponentDistribution(weight, mean, covariance));
+
+		// calculate mixing weights for old and new weights
+		double mixWeightOld = mEffectiveNoOfSamples / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
+		double mixWeightNew = sumOfNewWeights / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
+
+		mEffectiveNoOfSamples = mEffectiveNoOfSamples * mForgettingFactor + 1;
+
+		// mGlobalWeight = mGlobalWeight * mForgettingFactor + sumOfNewWeights;
+		mGlobalWeight = mixWeightOld + mixWeightNew;
+
+		for (int i = 0; i < mSubDistributions.size() - 1; i++) {
+			double tmpWeight = mSubDistributions.get(i).getGlobalWeight();
+			mSubDistributions.get(i).setGlobalWeight(tmpWeight * mixWeightOld);
+		}
+		for (int i = mSubDistributions.size() - 1; i < mSubDistributions.size(); i++) {
+			double tmpWeight = mSubDistributions.get(i).getGlobalWeight();
+			mSubDistributions.get(i).setGlobalWeight(tmpWeight * mixWeightNew * (1d / 1));
+		}
+		// mEffectiveNoOfSamples = mSubDistributions.size();
 	}
 
 	private static SampleModel projectToSubspace(SampleModel dist) throws EmptyDistributionException, IllegalArgumentException,

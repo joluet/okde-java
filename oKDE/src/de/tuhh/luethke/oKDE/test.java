@@ -35,7 +35,7 @@ public class test {
 		//double[][] dMu = {{1.18835013453899,0.0698038241915721,-1.25815395873056},{0.766696783442554,-1.41248979682270,0.645793013380147}};
 		double[][] mean1 = {{1},{1}};
 		double[][] mean2 = {{1},{1}};
-		double[][] mean3 = {{1.5},{1}};
+		double[][] mean3 = {{1.523},{1}};
 		double[][] mean4 = {{1.5},{1.5}};
 		double[][] mean5 = {{5},{5}};
 		double[][] mean6 = {{5.5},{5.5}};
@@ -49,20 +49,13 @@ public class test {
 		double[][] mean14 = {{5.5},{5.5}};
 		double[][] mean15 = {{4.5},{4.5}};
 		double[][] mean16 = {{5},{4.5}};
-		double[][] mean17 = {{4.5},{5}};
+		double[][] mean17 = {{4.5},{5.1222}};
 		/*
 		double[][] mean7 = {{5},{4.5}};
 		double[][] mean8 = {{4.5},{5}};
 		double[][] mean9 = {{5},{5}};
 		double[][] mean10 = {{5},{5}};*/
-		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
-		means.add(new SimpleMatrix(mean1));
-		means.add(new SimpleMatrix(mean2));
-		means.add(new SimpleMatrix(mean3));
-		means.add(new SimpleMatrix(mean4));
-		means.add(new SimpleMatrix(mean5));
-		means.add(new SimpleMatrix(mean6));
-		means.add(new SimpleMatrix(mean7));
+		
 		
 		//SimpleMatrix mu = new SimpleMatrix(dMu);
 		//SimpleMatrix[] mus = {mu};
@@ -72,68 +65,35 @@ public class test {
 		//double[][] dG = {{0.693361274350635,0.0}, {0.0,0.693361274350635}};
 		//SimpleMatrix g = new SimpleMatrix(dG);
 		//System.out.println(mu);
-		System.out.println(cov[0]);
-		//System.out.println(g);
-		double[][] cov_smp = {{1,0.0}, {0.0,1}};
-		SimpleMatrix Cov_smp = new SimpleMatrix(cov_smp);
-		System.out.println(Cov_smp);
 
 		try {
-			means = new ArrayList<SimpleMatrix>();
+			ArrayList<SimpleMatrix>  means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean1));
 			means.add(new SimpleMatrix(mean2));
 			means.add(new SimpleMatrix(mean3));
 		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov, w);
+		    
 		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean4));
-			double[] w1= {1};
-			SimpleMatrix[] cov1 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov1, w1);
-		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean5));
-			double[] w2= {1};
-			SimpleMatrix[] cov2 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov2, w2);
-		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean6));
-			double[] w3= {1};
-			SimpleMatrix[] cov3 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov3, w3);
-		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean7));
-			double[] w4= {1};
-			SimpleMatrix[] cov4 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov4, w4);
-		    
-		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean8));
-			double[] w5= {1};
-			SimpleMatrix[] cov5 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov5, w5);
-		    
-		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean9));
-			double[] w6= {1};
-			SimpleMatrix[] cov6 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov6, w6);
-		    
-		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean10));
-			double[] w7= {1};
-			SimpleMatrix[] cov7 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov7, w7);
-		    
-		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean11));
-			double[] w8= {1};
-			SimpleMatrix[] cov8 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov8, w8);
-		    
-		    means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean12));
-			double[] w9= {1};
-			SimpleMatrix[] cov9 = {new SimpleMatrix(c)};
-		    dist.updateDistribution(means.toArray(new SimpleMatrix[3]), cov9, w9);
+			means.add(new SimpleMatrix(mean13));
+			means.add(new SimpleMatrix(mean14));
+			means.add(new SimpleMatrix(mean15));
+			means.add(new SimpleMatrix(mean16));
+			means.add(new SimpleMatrix(mean17));
+		    
+		    for(int i=0; i<14; i++) {
+		    	dist.updateDistribution(means.get(i), new SimpleMatrix(c), 1.0d);
+		    }
+		    
+		    
 
 		} catch (EmptyDistributionException e) {
 		    // TODO Auto-generated catch block
@@ -171,7 +131,7 @@ public class test {
 
 		
 		for(BaseSampleDistribution d : dist.getSubDistributions())
-			System.out.println("subdist: "+ d.getGlobalMean() + " "+ d.getGlobalCovariance() + " smoothed"+ d.getmGlobalCovarianceSmoothed() + " " + d.getGlobalWeight());
+			System.out.println("subdist: "+ d.getGlobalMean() +  "weight " + d.getGlobalWeight());
 		System.out.println("finished");
 
 		/*ArrayList<SimpleMatrix> cov1 = new ArrayList<SimpleMatrix>();

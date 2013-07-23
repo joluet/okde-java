@@ -3,6 +3,10 @@ package de.tuhh.luethke.oKDE.model;
 import java.util.ArrayList;
 
 import org.ejml.simple.SimpleMatrix;
+import org.ejml.simple.SimpleSVD;
+
+import de.tuhh.luethke.oKDE.Exceptions.TooManyComponentsException;
+import de.tuhh.luethke.oKDE.utility.MatrixOps;
 
 public class OneComponentDistribution extends BaseSampleDistribution {
 
@@ -32,6 +36,42 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 		this.mSubspaceGlobalCovariance = twoComponentDistribution.getSubspaceGlobalCovariance();
 		this.mSubspaceInverseCovariance = twoComponentDistribution.getSubspaceInverseCovariance();
 		this.mGlobalWeight = twoComponentDistribution.getGlobalWeight();
+	}
+	
+	/**
+	 * Splits a single component distribution into two components as described in the oKDE-paper.
+	 * @return a TwoComponentDistribution
+	 */
+	public TwoComponentDistribution split(){
+		SimpleSVD<?> svd = mGlobalCovariance.svd(true);
+		SimpleMatrix U = svd.getU();
+		SimpleMatrix S = svd.getW();
+		SimpleMatrix V = svd.getV();
+		SimpleMatrix d = S.extractDiag();
+		double max = MatrixOps.maxVectorElement(d);
+		int maxIndex = MatrixOps.maxVectorElementIndex(d);
+		int len = mGlobalCovariance.numRows();
+		SimpleMatrix M = new SimpleMatrix(len,0);
+		M.set(maxIndex, 0, 1);
+		SimpleMatrix dMean = V.mult(M).scale(0.5*Math.sqrt(max));
+		SimpleMatrix meanSplit1 = mGlobalMean.plus(dMean);
+		SimpleMatrix meanSplit2 = mGlobalMean.plus(dMean);
+		
+		SimpleMatrix dyadMean = mGlobalMean.mult(mGlobalMean.transpose());
+		SimpleMatrix dyadMeanSplit1 = meanSplit1.mult(meanSplit1.transpose());
+		SimpleMatrix dyadMeanSplit2 = meanSplit2.mult(meanSplit2.transpose());
+		SimpleMatrix covSplit = mGlobalCovariance.plus(dyadMean).minus(dyadMeanSplit1.plus(dyadMeanSplit2).scale(0.5));
+		
+		SimpleMatrix[] means = {meanSplit1, meanSplit2};
+		SimpleMatrix[] covariances = {covSplit, covSplit};
+		double[] weights = {0.5*mGlobalWeight, 0,5*mGlobalWeight};
+		TwoComponentDistribution splitDist = null;
+		try {
+			splitDist = new TwoComponentDistribution(weights, means, covariances, mBandwidthMatrix);
+		} catch (TooManyComponentsException e) {
+			// cant be thrown
+		}
+		return splitDist;
 	}
 
 	/**
