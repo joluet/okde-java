@@ -1,5 +1,7 @@
 package de.tuhh.luethke.oKDE.utility;
 
+import javax.swing.text.StyleContext.SmallAttributeSet;
+
 import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
@@ -9,4 +11,5 @@ public class ProjectionData {
 	public Double[] mValidElements;
 	public int mCountValidElements;
 	public SimpleMatrix mBandwidthMatrix;
+	public SimpleMatrix mGlobalMean;
 }

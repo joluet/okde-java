@@ -73,7 +73,7 @@ public class Hellinger {
 		}
 
 		ThreeComponentDistribution dist = null;
-		dist = new ThreeComponentDistribution(weights, means, covs);
+		dist = new ThreeComponentDistribution(weights, means, covs, dist1.getBandwidthMatrix());
 
 		return dist;
 	}

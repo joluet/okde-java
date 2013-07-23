@@ -27,7 +27,7 @@ public class Compressor {
 		double compressionError = 0;
 		TwoComponentDistribution twoCompDist = null;
 		ArrayList<SimpleMatrix> means = dist.getSubMeans();
-		ArrayList<SimpleMatrix> covs = dist.getSubSmoothedCovariances();
+		ArrayList<SimpleMatrix> covs = dist.getSubCovariances();
 		ArrayList<Double> weights = dist.getSubWeights();
 		double distance = -1d;
 		int indexComp1=0, indexComp2=0;
@@ -51,7 +51,7 @@ public class Compressor {
 		SimpleMatrix[] covarianceArray = {covs.get(indexComp1), covs.get(indexComp2)};
 		double[] weightsArray = {weights.get(indexComp1), weights.get(indexComp2)};
 		try {
-			twoCompDist = new TwoComponentDistribution(weightsArray, meansArray, covarianceArray);
+			twoCompDist = new TwoComponentDistribution(weightsArray, meansArray, covarianceArray, dist.getBandwidthMatrix());
 			MomentMatcher.matchMoments(twoCompDist);
 			OneComponentDistribution oneCompDist = new OneComponentDistribution(twoCompDist);
 			compressionError = Hellinger.calculateUnscentedHellingerDistance(oneCompDist, twoCompDist);

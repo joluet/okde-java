@@ -5,11 +5,12 @@ import org.ejml.simple.SimpleMatrix;
 import de.tuhh.luethke.oKDE.Exceptions.TooManyComponentsException;
 
 public class ThreeComponentDistribution extends MultipleComponentDistribution{
-
-	public ThreeComponentDistribution(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances) throws TooManyComponentsException {
-		super(weights, means, covariances);
+	private final static int NO_OF_COMPONENTS = 3;
+	
+	public ThreeComponentDistribution(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances, SimpleMatrix bandwidth) throws TooManyComponentsException {
+		super(weights, means, covariances, bandwidth);
 		// check number of components
-		if (!(weights.length == 3 & means.length == 3 & covariances.length == 3))
+		if (!(weights.length == NO_OF_COMPONENTS & means.length == NO_OF_COMPONENTS & covariances.length == NO_OF_COMPONENTS))
 			throw new TooManyComponentsException();
 	}
 	

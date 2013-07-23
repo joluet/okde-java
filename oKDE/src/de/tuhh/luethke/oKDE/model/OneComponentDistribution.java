@@ -39,11 +39,12 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 	 */
 	@Override
 	public double evaluate(SimpleMatrix pointVector) {
+		SimpleMatrix smoothedCov = mGlobalCovariance.plus(mBandwidthMatrix);
 		double d = 0d;
 		double n = mGlobalMean.numRows();
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
-		double tmp = (-0.5d) * pointVector.minus(mGlobalMean).transpose().mult(mGlobalCovariance.invert()).mult(pointVector.minus(mGlobalMean)).trace();
-		d += ((1 / (a * Math.sqrt(mGlobalCovariance.determinant()))) * Math.exp(tmp)) * mGlobalWeight;
+		double tmp = (-0.5d) * pointVector.minus(mGlobalMean).transpose().mult(smoothedCov.invert()).mult(pointVector.minus(mGlobalMean)).trace();
+		d += ((1 / (a * Math.sqrt(smoothedCov.determinant()))) * Math.exp(tmp)) * mGlobalWeight;
 
 		return d;
 	}

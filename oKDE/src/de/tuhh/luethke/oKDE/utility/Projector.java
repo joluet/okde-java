@@ -3,6 +3,7 @@ package de.tuhh.luethke.oKDE.utility;
 import java.util.Arrays;
 import java.util.List;
 
+import org.ejml.ops.CommonOps;
 import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
@@ -46,8 +47,7 @@ public class Projector {
 		SimpleMatrix U = svd.getU();
 		SimpleMatrix S = svd.getW();
 		SimpleMatrix V = svd.getV();
-		
-		
+
 		V = U;
 
 		SimpleMatrix s = S.extractDiag();
@@ -83,35 +83,33 @@ public class Projector {
 					invS.set(i, i, 1d / validElements[i]);
 			}
 		}
-		//TODO: remove
-		validElements = new Double[2];
-		validElements[0] = 1d;
-		validElements[1] = 0d;
-		countValidElements = 1;
-		
+		// TODO: remove this test data
+		/*
+		 * validElements = new Double[2]; validElements[0] = 1d;
+		 * validElements[1] = 0d; countValidElements = 1;
+		 */
+
 		SimpleMatrix trnsF = MatrixOps.elemSqrt(MatrixOps.abs(invS)).mult(V.invert());
 
 		// forward transform the pdf and remove non-valid eigendirections
 		SimpleMatrix trnsBandwidthMatrix = transformMatrix(trnsF, distribution.getBandwidthMatrix(), validElements, countValidElements);
 		List<BaseSampleDistribution> subDistributions = distribution.getSubDistributions();
 		for (int i = 0; i < subDistributions.size(); i++) {
-			SimpleMatrix[] subSubMeans = new SimpleMatrix[1];
-			SimpleMatrix[] subSubCovs = new SimpleMatrix[1];
+			SimpleMatrix[] subSubMeans = new SimpleMatrix[0];
+			SimpleMatrix[] subSubCovs = new SimpleMatrix[0];
 			if (subDistributions.get(i).getClass() == TwoComponentDistribution.class) {
 				TwoComponentDistribution subDist = (TwoComponentDistribution) subDistributions.get(i);
 				subSubMeans = subDist.getSubMeans();
 				subSubCovs = subDist.getSubCovariances();
-			} else {
-				OneComponentDistribution subDist = (OneComponentDistribution) subDistributions.get(i);
-				subSubMeans[0] = subDist.getGlobalMean();
-				subSubCovs[0] = subDist.getmGlobalCovarianceSmoothed();
 			}
+			// if subcomponent has subcomponents transform also the means and
+			// covariances of these subsubcomponents:
 			if (subSubMeans.length > 1) {
 				for (int j = 0; j < subSubMeans.length; j++) {
 					subSubCovs[j] = transformMatrix(trnsF, subSubCovs[j], validElements, countValidElements);
-					SimpleMatrix tmp = trnsF.mult(subSubMeans[i].minus(globalMean));
+					SimpleMatrix tmp = trnsF.mult(subSubMeans[j].minus(globalMean));
 					tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements), countValidElements);
-					subSubMeans[i] = tmp;
+					subSubMeans[j] = tmp;
 				}
 				try {
 					((TwoComponentDistribution) subDistributions.get(i)).setSubMeans(subSubMeans);
@@ -122,12 +120,15 @@ public class Projector {
 					e.printStackTrace();
 				}
 				MomentMatcher.matchMoments(((TwoComponentDistribution) subDistributions.get(i)));
-			} else {
-				SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();
-				SimpleMatrix tmp = trnsF.mult(subMean.minus(globalMean));
-				tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements), countValidElements);
-				subDistributions.get(i).setGlobalMean(tmp);
 			}
+			// transform subcomponents
+			SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();
+			SimpleMatrix tmp = trnsF.mult(subMean.minus(globalMean));
+			tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements), countValidElements);
+			subDistributions.get(i).setGlobalMean(tmp);
+			SimpleMatrix subCov = subDistributions.get(i).getGlobalCovariance();
+			subCov = transformMatrix(trnsF, subCov, validElements, countValidElements);
+			subDistributions.get(i).setGlobalCovariance(subCov);
 			subDistributions.get(i).setBandwidthMatrix(trnsBandwidthMatrix);
 		}
 		// transform also the global covariance
@@ -135,6 +136,7 @@ public class Projector {
 		distribution.setBandwidthMatrix(trnsBandwidthMatrix);
 		projectionData.mCountValidElements = countValidElements;
 		projectionData.mValidElements = validElements;
+		projectionData.mGlobalMean = globalMean;
 		return projectionData;
 	}
 
@@ -149,66 +151,76 @@ public class Projector {
 				else if (validElements[column] == 1)
 					trnsMatrix.set(row, column, tmp.get(row, column));
 				else
-					trnsMatrix.set(0);
+					trnsMatrix.set(row, column, 0);
 			}
 		}
 		return trnsMatrix;
 	}
-	
-	private static SimpleMatrix backTransformMatrix(SimpleMatrix matrix, SimpleMatrix bandwidth, Double[] validElements) {
+
+	private static SimpleMatrix backTransformMatrix(SimpleMatrix matrix, SimpleMatrix matrixToTransform, Double[] validElements) {
 		// add removed eigendirections and backwards transform
 		for (int row = 0; row < matrix.numRows(); row++) {
 			for (int column = 0; column < matrix.numCols(); column++) {
 				if (validElements[row] == 1)
-					matrix.set(row, column, bandwidth.get(row, column));
+					matrix.set(row, column, matrixToTransform.get(row, column));
 				else if (validElements[column] == 1)
-					matrix.set(row, column, bandwidth.get(row, column));
+					matrix.set(row, column, matrixToTransform.get(row, column));
 				else
-					matrix.set(0);
+					matrix.set(row, column, 0);
 			}
 		}
-		
+
 		return matrix;
 	}
-	
-	
+
 	public static void projectSampleDistToOriginalSpace(SampleModel distribution, ProjectionData projectionData) throws EmptyDistributionException {
 		// add missing nullspace to pdf
-		/*num_nullDir = size(svdRes.S,1) - length(svdRes.id_valid) ;
-		F_trns = svdRes.V*sqrt(svdRes.S) ;
-		C_prot = zeros(size(svdRes.S)) ;*/
+		/*
+		 * num_nullDir = size(svdRes.S,1) - length(svdRes.id_valid) ; F_trns =
+		 * svdRes.V*sqrt(svdRes.S) ; C_prot = zeros(size(svdRes.S)) ;
+		 */
 		SimpleMatrix bandwidth = distribution.getBandwidthMatrix();
 		SimpleSVD<?> svd = projectionData.mSVD;
 		SimpleMatrix U = svd.getU();
 		SimpleMatrix S = svd.getW();
 		SimpleMatrix V = svd.getV();
+		SimpleMatrix globalMean = projectionData.mGlobalMean;
 		Double[] validElements = projectionData.mValidElements;
 		int countValidElements = projectionData.mCountValidElements;
 		int noOfNullDirs = S.numCols() - countValidElements;
 		SimpleMatrix trnsF = V.mult(MatrixOps.elemSqrt(S));
 		SimpleMatrix protC = S.scale(0);
+		// transform bandwidth
 		protC = backTransformMatrix(protC, bandwidth, validElements);
 		bandwidth = trnsF.mult(protC).mult(trnsF.transpose());
-		
+		// set bandwidth in distribution
+		distribution.setBandwidthMatrix(bandwidth);
+
+		// transform means an covariances of sub components
 		List<BaseSampleDistribution> subDistributions = distribution.getSubDistributions();
 		for (int i = 0; i < subDistributions.size(); i++) {
-			SimpleMatrix[] subSubMeans = new SimpleMatrix[1];
-			SimpleMatrix[] subSubCovs = new SimpleMatrix[1];
+			SimpleMatrix[] subSubMeans = new SimpleMatrix[0];
+			SimpleMatrix[] subSubCovs = new SimpleMatrix[0];
 			if (subDistributions.get(i).getClass() == TwoComponentDistribution.class) {
 				TwoComponentDistribution subDist = (TwoComponentDistribution) subDistributions.get(i);
 				subSubMeans = subDist.getSubMeans();
 				subSubCovs = subDist.getSubCovariances();
-			} else {
-				OneComponentDistribution subDist = (OneComponentDistribution) subDistributions.get(i);
-				subSubMeans[0] = subDist.getGlobalMean();
-				subSubCovs[0] = subDist.getmGlobalCovarianceSmoothed();
 			}
+			// if subcomponent has subcomponents transform also the means and
+			// covariances of these subsubcomponents:
 			if (subSubMeans.length > 1) {
 				for (int j = 0; j < subSubMeans.length; j++) {
-					subSubCovs[j] = transformMatrix(trnsF, subSubCovs[j], validElements, countValidElements);
-					SimpleMatrix tmp = trnsF.mult(subSubMeans[i].minus(globalMean));
-					tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements));
-					subSubMeans[i] = tmp;
+					//resize mean
+					SimpleMatrix newMean = new SimpleMatrix(subSubMeans[j].numRows()+noOfNullDirs,1);
+					newMean = setVectorElements(newMean, subSubMeans[j],validElements);
+					// transform mean
+					SimpleMatrix tmp = trnsF.mult(newMean).plus(globalMean);
+					subSubMeans[j] = tmp;
+					
+					// transform covariance
+					protC = protC.scale(0);
+					subSubCovs[j] = backTransformMatrix(protC, subSubCovs[j], validElements);
+					subSubCovs[j] = trnsF.mult(subSubCovs[j]).mult(trnsF.transpose());
 				}
 				try {
 					((TwoComponentDistribution) subDistributions.get(i)).setSubMeans(subSubMeans);
@@ -218,14 +230,28 @@ public class Projector {
 					// only contain subcomponents with at most 2 components
 					e.printStackTrace();
 				}
-				MomentMatcher.matchMoments(((TwoComponentDistribution) subDistributions.get(i)));
-			} else {
-				SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();
-				SimpleMatrix tmp = trnsF.mult(subMean.minus(globalMean));
-				tmp = MatrixOps.deleteElementsFromVector(tmp, Arrays.asList(validElements));
-				subDistributions.get(i).setGlobalMean(tmp);
+				//MomentMatcher.matchMoments(((TwoComponentDistribution) subDistributions.get(i)));
 			}
-			subDistributions.get(i).setBandwidthMatrix(trnsBandwidthMatrix);
+			// transform subcomponents
+			SimpleMatrix subMean = subDistributions.get(i).getGlobalMean();
+			SimpleMatrix newMean = new SimpleMatrix(subMean.numRows()+noOfNullDirs,1);
+			newMean = setVectorElements(newMean, subMean,validElements);
+			SimpleMatrix tmp = trnsF.mult(newMean).plus(globalMean);
+			subDistributions.get(i).setGlobalMean(tmp);
+			SimpleMatrix subCov = subDistributions.get(i).getGlobalCovariance();
+			// transform covariance
+			protC = protC.scale(0);
+			subCov = backTransformMatrix(protC, subCov, validElements);
+			subCov = trnsF.mult(subCov).mult(trnsF.transpose());
+			subDistributions.get(i).setGlobalCovariance(subCov);
+			subDistributions.get(i).setBandwidthMatrix(bandwidth);
 		}
+	}
+	private static SimpleMatrix setVectorElements(SimpleMatrix v1, SimpleMatrix v2, Double[] elementsInV1) {
+		int j = 0;
+		for (int i = 0; i < v1.numRows(); i++)
+			if (elementsInV1[i] == 1)
+				v1.set(i, 0, v2.get(j++));
+		return v1;
 	}
 }

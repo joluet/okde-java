@@ -12,7 +12,10 @@ abstract public class MultipleComponentDistribution extends BaseSampleDistributi
 	private OneComponentDistribution[] mSubDistributions;
 	
 
-	public MultipleComponentDistribution(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances) {
+	public MultipleComponentDistribution(double[] weights, SimpleMatrix[] means, SimpleMatrix[] covariances, SimpleMatrix bandwidth) {
+		if(bandwidth == null)
+			bandwidth = covariances[0].scale(0);
+		mBandwidthMatrix = bandwidth;
 		// add components to distribution
 		mSubDistributions = new OneComponentDistribution[weights.length];
 		for(int i=0; i<mSubDistributions.length; i++){
@@ -56,7 +59,7 @@ abstract public class MultipleComponentDistribution extends BaseSampleDistributi
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
 		for (int i = 0; i < means.length; i++) {
 			SimpleMatrix m = means[i];
-			SimpleMatrix c = covs[i];
+			SimpleMatrix c = covs[i].plus(this.mBandwidthMatrix);
 			double w = weights[i];
 			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
 			d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
