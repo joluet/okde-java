@@ -160,7 +160,6 @@ public class test {
 		System.out.println("AVG Error: "+(error/10000));
 		System.out.println("MSE: "+(error_squared/10000));
 		System.out.println("Max Error: "+maxError);
-
 		
 		// create your PlotPanel (you can use it as a JPanel) with a legend at
 		// SOUTH
