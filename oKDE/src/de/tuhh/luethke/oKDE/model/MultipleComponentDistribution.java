@@ -19,7 +19,7 @@ abstract public class MultipleComponentDistribution extends BaseSampleDistributi
 		// add components to distribution
 		mSubDistributions = new OneComponentDistribution[weights.length];
 		for(int i=0; i<mSubDistributions.length; i++){
-			mSubDistributions[i] = new OneComponentDistribution(weights[i], means[i], covariances[i]);	
+			mSubDistributions[i] = new OneComponentDistribution(weights[i], means[i], covariances[i], bandwidth);	
 		}
 		mGlobalWeight = 0;
 		for (double w : weights) {

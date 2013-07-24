@@ -190,18 +190,18 @@ public class SampleModel extends BaseSampleDistribution {
 		// reestimate bandwidth as explained in oKDE paper
 		double bandwidthFactor = reestimateBandwidth(subSpaceDist.getSubMeans().toArray(new SimpleMatrix[0]), subSpaceDist.getSubCovariances()
 				.toArray(new SimpleMatrix[0]), weights, subSpaceDist.getSubspaceGlobalCovariance(), mEffectiveNoOfSamples);
-		System.out.println("BANDW" + bandwidthFactor);
+		//System.out.println("BANDW" + bandwidthFactor);
 		// project Bandwidth into original space
 		SimpleMatrix bandwidthMatrix = projectBandwidthToOriginalSpace(subSpaceDist, bandwidthFactor);
 		this.mBandwidthMatrix = bandwidthMatrix;
 		for (int i = 0; i < this.getSubDistributions().size(); i++) {
 			this.getSubDistributions().get(i).setBandwidthMatrix(bandwidthMatrix);
 		}
-		System.out.println("BW: " + bandwidthMatrix);
-		System.out.println(bandwidthMatrix.get(0, 0) + " " + bandwidthMatrix.get(1, 1));
+		//System.out.println("BW: " + bandwidthMatrix);
+		//System.out.println(bandwidthMatrix.get(0, 0) + " " + bandwidthMatrix.get(1, 1));
 		if (mGlobalCovariance == null) {
 			mGlobalCovariance = new SimpleMatrix(2, 2);
-			System.out.println("globcov null");
+			//System.out.println("globcov null");
 		}
 		try {
 			Compressor.compress(this);
@@ -230,7 +230,7 @@ public class SampleModel extends BaseSampleDistribution {
 		double sumOfNewWeights = 0;
 		for (int i = 0; i < weights.length; i++) {
 			sumOfNewWeights += weights[i];
-			mSubDistributions.add(new OneComponentDistribution(weights[i], means[i], covariances[i]));
+			mSubDistributions.add(new OneComponentDistribution(weights[i], means[i], covariances[i], mBandwidthMatrix));
 		}
 
 		// calculate mixing weights for old and new weights
@@ -262,7 +262,7 @@ public class SampleModel extends BaseSampleDistribution {
 	private void addDistribution(double weight, SimpleMatrix mean, SimpleMatrix covariance) {
 		double sumOfNewWeights = 0;
 		sumOfNewWeights += weight;
-		mSubDistributions.add(new OneComponentDistribution(weight, mean, covariance));
+		mSubDistributions.add(new OneComponentDistribution(weight, mean, covariance, mBandwidthMatrix));
 
 		// calculate mixing weights for old and new weights
 		double mixWeightOld = mEffectiveNoOfSamples / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
@@ -291,7 +291,7 @@ public class SampleModel extends BaseSampleDistribution {
 		ArrayList<Integer> subSpace = new ArrayList<Integer>();
 		MomentMatcher.matchMoments(distribution);
 		SimpleMatrix overallCovariance = distribution.getGlobalCovariance();
-		System.out.println("cov: " + overallCovariance);
+		//System.out.println("cov: " + overallCovariance);
 		SimpleSVD<?> svd = overallCovariance.svd(true);
 		SimpleMatrix U = svd.getU();
 		SimpleMatrix S = svd.getW();

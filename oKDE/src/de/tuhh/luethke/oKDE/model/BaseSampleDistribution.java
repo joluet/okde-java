@@ -67,6 +67,10 @@ public abstract class BaseSampleDistribution {
 	public void setGlobalWeight(double weight) {
 		this.mGlobalWeight = weight;
 	}
+	
+	public void scaleGlobalWeight(double scaleFactor) {
+		this.mGlobalWeight = this.mGlobalWeight*scaleFactor;
+	}
 
 	public void setSubspaceGlobalCovariance(SimpleMatrix subspaceCovariance) {
 		this.mSubspaceGlobalCovariance = subspaceCovariance;

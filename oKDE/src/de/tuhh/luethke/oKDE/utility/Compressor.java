@@ -6,11 +6,14 @@ import java.util.ArrayList;
 import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
+import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
 import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.SampleModel;
 import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
 
 public class Compressor {
+	private final static double CONST_SMALL_TOLERANCE = 1E-10;
+	
 	private final static double D_TH = 0.02;
 
 	private static final float INC_TH_SCALE = 1.5f;
@@ -32,7 +35,7 @@ public class Compressor {
 			return;
 		ProjectionData projectionData = Projector.projectSampleDistToSubspace(dist);
 		revitalizeComponents(dist);
-		System.out.println("COMPRESS");
+		//System.out.println("COMPRESS");
 		int noOfCompsBeforeCompression = dist.getSubMeans().size();
 		SampleModel inputModelCopy = new SampleModel(dist);
 		double compressionError = mergeTwoClosestComps(inputModelCopy);
@@ -56,8 +59,23 @@ public class Compressor {
 				double compressionError = Hellinger.calculateUnscentedHellingerDistance(oneCompDist, subDist);
 				subDist.setGlobalWeight(tmpWeight);
 				if (compressionError >= D_TH) {
-					TwoComponentDistribution splitDist1 = subDist.getSubComponents()[0].split();
-					TwoComponentDistribution splitDist2 = subDist.getSubComponents()[1].split();
+					OneComponentDistribution subComp1 = subDist.getSubComponents()[0];
+					OneComponentDistribution subComp2 = subDist.getSubComponents()[1];
+					BaseSampleDistribution splitDist1 = null, splitDist2 = null;
+					// check wether covariance of sub component is zero --> no splitting necessary
+					if(subComp1.getGlobalCovariance().elementSum() > CONST_SMALL_TOLERANCE)
+						splitDist1 = subComp1.split(tmpWeight);
+					else{ 
+						subComp1.scaleGlobalWeight(tmpWeight);
+						splitDist1 = subComp1;
+					}
+					// check wether covariance of sub component is zero --> no splitting necessary
+					if(subComp2.getGlobalCovariance().elementSum() > CONST_SMALL_TOLERANCE)
+						splitDist2 = subComp2.split(tmpWeight);
+					else{ 
+						subComp2.scaleGlobalWeight(tmpWeight);
+						splitDist2 = subComp2;
+					}
 					dist.getSubDistributions().set(i,splitDist1);
 					dist.getSubDistributions().add(splitDist2);
 				}

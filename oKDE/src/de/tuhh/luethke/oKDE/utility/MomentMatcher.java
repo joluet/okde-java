@@ -68,9 +68,9 @@ public class MomentMatcher {
 		newCovariance = newCovariance.scale(1 / newWeight);
 		SimpleMatrix dyadNewMean = newMean.mult(newMean.transpose());
 		newCovariance = newCovariance.minus(dyadNewMean);
-		System.out.println("matching moments");
-		System.out.println(newCovariance);
-		System.out.println(newMean);
+		//System.out.println("matching moments");
+		//System.out.println(newCovariance);
+		//System.out.println(newMean);
 		// set calculated parameters to distribution
 		distribution.setGlobalCovariance(newCovariance);
 		distribution.setGlobalMean(newMean);
@@ -123,9 +123,9 @@ public class MomentMatcher {
 		newCovariance = newCovariance.scale(1 / newWeight);
 		SimpleMatrix dyadNewMean = newMean.mult(newMean.transpose());
 		newCovariance = newCovariance.minus(dyadNewMean);
-		System.out.println("matching moments");
-		System.out.println(newCovariance);
-		System.out.println(newMean);
+		//System.out.println("matching moments");
+		//System.out.println(newCovariance);
+		//System.out.println(newMean);
 		// set calculated parameters to distribution
 		distribution.setGlobalCovariance(newCovariance);
 		distribution.setGlobalMean(newMean);

@@ -22,13 +22,13 @@ public class Hellinger {
 		ThreeComponentDistribution dist0 = mergeSampleDists(dist1, dist2, HALF, HALF);
 
 		List<SigmaPoint> sigmaPoints = getAllSigmaPoints(dist0, 3);
-		System.out.println("sigmapoints: " + sigmaPoints.size());
+		//System.out.println("sigmapoints: " + sigmaPoints.size());
 		ArrayList<SimpleMatrix> points = new ArrayList<SimpleMatrix>();
 		ArrayList<Double> weights = new ArrayList<Double>();
 		for (SigmaPoint p : sigmaPoints) {
 			points.add(p.getmPointVecor());
 			weights.add(p.getmWeight());
-			System.out.println(p.getmPointVecor() + " - " + p.getmWeight());
+			//System.out.println(p.getmPointVecor() + " - " + p.getmWeight());
 		}
 
 		List<Double> dist1Ev = dist1.evaluate(points);
@@ -49,7 +49,7 @@ public class Hellinger {
 		CommonOps.elementDiv(tmp.getMatrix(), mat0.getMatrix(), tmp.getMatrix());
 		double val = tmp.elementSum();
 		double H = Math.sqrt(Math.abs(val / 2));
-		System.out.println("Hellinger dist: " + H);
+		//System.out.println("Hellinger dist: " + H);
 		return H;
 	}
 

@@ -10,13 +10,13 @@ import de.tuhh.luethke.oKDE.utility.MatrixOps;
 
 public class OneComponentDistribution extends BaseSampleDistribution {
 
-	public OneComponentDistribution(double w, SimpleMatrix mean, SimpleMatrix covariance) {
+	public OneComponentDistribution(double w, SimpleMatrix mean, SimpleMatrix covariance, SimpleMatrix bandwidth) {
 		super();
 		mGlobalWeight = w;
 		mGlobalMean = mean;
 		mGlobalCovariance = covariance;
 		// initialize bandwidth matrix to zero
-		mBandwidthMatrix = new SimpleMatrix(covariance.numRows(), covariance.numRows()).scale(0);
+		mBandwidthMatrix = bandwidth;
 		mForgettingFactor = 1;
 	}
 
@@ -42,7 +42,7 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 	 * Splits a single component distribution into two components as described in the oKDE-paper.
 	 * @return a TwoComponentDistribution
 	 */
-	public TwoComponentDistribution split(){
+	public TwoComponentDistribution split(double parentWeight){
 		SimpleSVD<?> svd = mGlobalCovariance.svd(true);
 		SimpleMatrix U = svd.getU();
 		SimpleMatrix S = svd.getW();
@@ -51,11 +51,12 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 		double max = MatrixOps.maxVectorElement(d);
 		int maxIndex = MatrixOps.maxVectorElementIndex(d);
 		int len = mGlobalCovariance.numRows();
-		SimpleMatrix M = new SimpleMatrix(len,0);
-		M.set(maxIndex, 0, 1);
+		SimpleMatrix M = new SimpleMatrix(len,1);
+		//System.out.println("numrows: "+M.numRows());
+		M.set(maxIndex, 0, 1.0d);
 		SimpleMatrix dMean = V.mult(M).scale(0.5*Math.sqrt(max));
 		SimpleMatrix meanSplit1 = mGlobalMean.plus(dMean);
-		SimpleMatrix meanSplit2 = mGlobalMean.plus(dMean);
+		SimpleMatrix meanSplit2 = mGlobalMean.minus(dMean);
 		
 		SimpleMatrix dyadMean = mGlobalMean.mult(mGlobalMean.transpose());
 		SimpleMatrix dyadMeanSplit1 = meanSplit1.mult(meanSplit1.transpose());
@@ -64,10 +65,13 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 		
 		SimpleMatrix[] means = {meanSplit1, meanSplit2};
 		SimpleMatrix[] covariances = {covSplit, covSplit};
-		double[] weights = {0.5*mGlobalWeight, 0,5*mGlobalWeight};
+		double[] weights = {0.5, 0.5};
 		TwoComponentDistribution splitDist = null;
 		try {
 			splitDist = new TwoComponentDistribution(weights, means, covariances, mBandwidthMatrix);
+			splitDist.setGlobalWeight(parentWeight*mGlobalWeight);
+			splitDist.setGlobalCovariance(mGlobalCovariance);
+			splitDist.setGlobalMean(mGlobalMean);
 		} catch (TooManyComponentsException e) {
 			// cant be thrown
 		}
