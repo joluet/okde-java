@@ -142,23 +142,37 @@ public class Projector {
 
 	private static SimpleMatrix transformMatrix(SimpleMatrix trnsF, SimpleMatrix matrix, Double[] validElements, int countValidElements) {
 		// forward transform the pdf and remove non-valid eigendirections
+		if(matrix.numRows()!= countValidElements)
+			System.out.println("projection was necessary!!!");
 		SimpleMatrix tmp = trnsF.mult(matrix).mult(trnsF.transpose());
 		SimpleMatrix trnsMatrix = new SimpleMatrix(countValidElements, countValidElements);
-		for (int row = 0; row < trnsMatrix.numRows(); row++) {
-			for (int column = 0; column < trnsMatrix.numCols(); column++) {
-				if (validElements[row] == 1)
-					trnsMatrix.set(row, column, tmp.get(row, column));
-				else if (validElements[column] == 1)
-					trnsMatrix.set(row, column, tmp.get(row, column));
-				else
-					trnsMatrix.set(row, column, 0);
+		int row=0, column=0;
+		for(int i=0; i< validElements.length; i++){
+			for(int j=0; j< validElements.length; j++){
+				if(validElements[i] == 1 && validElements[j] == 1)
+					trnsMatrix.set(row, column++, tmp.get(i, j));
 			}
+			column = 0;
+			row++;
 		}
 		return trnsMatrix;
 	}
 
 	private static SimpleMatrix backTransformMatrix(SimpleMatrix matrix, SimpleMatrix matrixToTransform, Double[] validElements) {
 		// add removed eigendirections and backwards transform
+		int row=0, column=0;
+		for(int i=0; i< validElements.length; i++){
+			for(int j=0; j< validElements.length; j++){
+				if(validElements[i] == 1 && validElements[j] == 1)
+					matrix.set(i, j, matrixToTransform.get(row, column++));
+			}
+			column = 0;
+			row++;
+		}
+		
+		/*
+		
+		int a=0,b=0;
 		for (int row = 0; row < matrix.numRows(); row++) {
 			for (int column = 0; column < matrix.numCols(); column++) {
 				if (validElements[row] == 1)
@@ -168,8 +182,7 @@ public class Projector {
 				else
 					matrix.set(row, column, 0);
 			}
-		}
-
+		}*/
 		return matrix;
 	}
 

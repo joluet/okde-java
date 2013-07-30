@@ -381,6 +381,7 @@ public class SampleModel extends BaseSampleDistribution {
 	}
 
 	private double getIntSquaredHessian(SimpleMatrix[] means, Double[] weights, SimpleMatrix[] covariance, SimpleMatrix F, SimpleMatrix g) {
+		long time = System.currentTimeMillis();
 		long d = means[0].numRows();
 		long N = means.length;
 		// normalizer
@@ -429,7 +430,9 @@ public class SampleModel extends BaseSampleDistribution {
 				I = I + f_t * c * w2 * w1 * eta;
 			}
 		}
-
+		time = time - System.currentTimeMillis();
+		if((time) > 100)
+			System.out.println("Time for IntSqrdHessian: "+ (time/1000)+"s");
 		return I;
 	}
 
@@ -507,6 +510,201 @@ public class SampleModel extends BaseSampleDistribution {
 		}
 		return d;
 	}
+	
+	public double evaluateConditional(SimpleMatrix pointVector, int[] condDim) {
+		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
+		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
+		ArrayList<Double> weights = new ArrayList<Double>();
+		means = this.getSubMeans();
+		covs = this.getSubSmoothedCovariances();
+		weights = this.getSubWeights();
+		double d = 0d;
+		double n = means.get(0).numRows();
+		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+		for (int i = 0; i < means.size(); i++) {
+			SimpleMatrix m = means.get(i);
+			SimpleMatrix c = covs.get(i);
+			double w = weights.get(i);
+			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
+			d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
+		}
+		double marg = marginal(pointVector,condDim);
+		return d/marg;
+	}
+	
+	private double marginal(SimpleMatrix pointVector, int[] margDimensions){
+		SimpleMatrix tmpMatrix = new SimpleMatrix(margDimensions.length,1);
+		for(int i=0; i<margDimensions.length; i++) {
+			tmpMatrix.set(i,0,pointVector.get(margDimensions[i],0));
+		}
+		pointVector = tmpMatrix;
+		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
+		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
+		ArrayList<Double> weights = new ArrayList<Double>();
+		means = this.getSubMeans();
+		covs = this.getSubSmoothedCovariances();
+		weights = this.getSubWeights();
+		for(int i=0; i<means.size(); i++){
+			double[][] m = new double[margDimensions.length][1];
+			for(int j=0; j<margDimensions.length; j++) {
+				m[j][0] = means.get(i).get(margDimensions[j], 0);
+			}
+			means.set(i, new SimpleMatrix(m));
+		}
+		for(int i=0; i<covs.size(); i++){
+			double[][] m = new double[margDimensions.length][margDimensions.length];
+			for(int j=0; j<margDimensions.length; j++) {
+				for(int k=0; k<margDimensions.length; k++) {
+					m[j][k] = covs.get(i).get(margDimensions[j], margDimensions[k]);
+				}
+			}
+			covs.set(i, new SimpleMatrix(m));
+		}
+		
+		double d = 0d;
+		double n = means.get(0).numRows();
+		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+		for (int i = 0; i < means.size(); i++) {
+			SimpleMatrix m = means.get(i);
+			SimpleMatrix c = covs.get(i);
+			double w = weights.get(i);
+			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
+			d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
+		}
+		return d;
+	}
+	
+	/**
+	 * Finds the volume under the surface described by the function f(x, y) for a <= x <= b, c <= y <= d.
+	 * Using xSegs number of segments across the x axis and ySegs number of segments across the y axis. 
+	 * @param a The lower bound of x.
+	 * @param b The upper bound of x.
+	 * @param c The lower bound of y.
+	 * @param d The upper bound of y.
+	 * @param xSegs The number of segments in the x axis.
+	 * @param ySegs The number of segments in the y axis.
+	 * @return The volume under f(x, y).
+	 */
+	public double trapezoidRule(SimpleMatrix fixed , SimpleMatrix bounds, int xSegs, int ySegs) {
+    	int[] condDim = {0,1,2,3};
+		double a = bounds.get(0,0)-200;
+		double b = bounds.get(0,0)+200;
+		double c = bounds.get(1,0)-200;
+		double d = bounds.get(1,0)+200;
+	    double xSegSize = (b - a) / xSegs; // length of an x segment.
+	    double ySegSize = (d - c) / ySegs; // length of a y segment.
+	    double volume = 0; // volume under the surface.
+    	double[][] tmp = new double[fixed.numRows()+2][1];
+    	for(int i=0; i<fixed.numRows(); i++) {
+    		tmp[i][0] = fixed.get(i,0);
+    	}
+    	int dim = tmp.length-1;
+	    for (int i = 0; i < xSegs; i++) {
+	        for (int j = 0; j < ySegs; j++) {
+	        	tmp[dim-1][0] = a + (xSegSize * i);
+	        	tmp[dim][0] = c + (ySegSize * j);
+	            double height = evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
+	        	tmp[dim][0] = c + (ySegSize * j);
+	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
+	        	tmp[dim][0] = c + (ySegSize * (j + 1));
+	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * i);
+	        	tmp[dim][0] = c + (ySegSize * (j + 1));
+	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            height /= 4;
+
+	            // height is the average value of the corners of the current segment.
+	            // We can use the average value since a box of this height has the same volume as the original segment shape.
+
+	            // Add the volume of the box to the volume.
+	            if (height>1)
+	            	System.out.println(1);
+	            volume += xSegSize * ySegSize * height;
+	        }
+	    }
+
+	    return volume;
+	}
+	
+	public double trapezoidRule1(SimpleMatrix fixed , SimpleMatrix bounds, int xSegs, int ySegs) {
+		double a = bounds.get(0,0)-5;
+		double b = bounds.get(0,0)+5;
+		double c = bounds.get(1,0)-5;
+		double d = bounds.get(1,0)+5;
+	    double xSegSize = (b - a) / xSegs; // length of an x segment.
+	    double ySegSize = (d - c) / ySegs; // length of a y segment.
+	    double volume = 0; // volume under the surface.
+    	double[][] tmp = new double[fixed.numRows()+2][1];
+    	for(int i=0; i<fixed.numRows(); i++) {
+    		tmp[i][0] = fixed.get(i,0);
+    	}
+    	int dim = tmp.length-1;
+    	int[] condDim = {0,1};
+	    for (int i = 0; i < xSegs; i++) {
+	        for (int j = 0; j < ySegs; j++) {
+	        	tmp[dim-1][0] = a + (xSegSize * i);
+	        	tmp[dim][0] = c + (ySegSize * j);
+	            double height = evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
+	        	tmp[dim][0] = c + (ySegSize * j);
+	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
+	        	tmp[dim][0] = c + (ySegSize * (j + 1));
+	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * i);
+	        	tmp[dim][0] = c + (ySegSize * (j + 1));
+	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            height /= 4;
+
+	            // height is the average value of the corners of the current segment.
+	            // We can use the average value since a box of this height has the same volume as the original segment shape.
+
+	            // Add the volume of the box to the volume.
+	            volume += xSegSize * ySegSize * height;
+	        }
+	    }
+
+	    return volume;
+	}
+	
+	/*public double getVolume(SimpleMatrix pointVector) {
+		
+		double[] borders = new double[(pointVector.numRows())*2];
+		int k = 1;
+		int row = 0;
+		for(int i=0; i<borders.length; i++) {
+			if(i%2 == 0)
+				k = (-1)*k;
+			if(i!=0 && i%2==0)
+				row+=1;
+			double val = pointVector.get(row,0)*0.001;
+			borders[i] = pointVector.get(row,0)+(k*val);
+		}
+		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
+		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
+		ArrayList<Double> weights = new ArrayList<Double>();
+		means = this.getSubMeans();
+		covs = this.getSubSmoothedCovariances();
+		weights = this.getSubWeights();
+		double v = 0d;
+		for(int b=0; b<borders.length; b++) {
+			SimpleMatrix vector = new SimpleMatrix(pointVector.numRows(),1);
+			
+			
+			double n = means.get(0).numRows();
+			double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+			for (int i = 0; i < means.size(); i++) {
+				SimpleMatrix m = means.get(i);
+				SimpleMatrix c = covs.get(i);
+				double w = weights.get(i);
+				double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
+				v += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
+			}
+		}
+		return d;
+	}*/
 
 	/**
 	 * Evaluates the distribution at the given n-dimensional points and returns

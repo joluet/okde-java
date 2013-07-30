@@ -65,7 +65,7 @@ public class test {
 		// SimpleMatrix g = new SimpleMatrix(dG);
 		// System.out.println(mu);
 		ArrayList<SimpleMatrix> toFile = new ArrayList<SimpleMatrix>();
-		boolean writeToFile = false;
+		boolean writeToFile = true;
 		try {
 			ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
 			means.add(new SimpleMatrix(mean1));
@@ -77,9 +77,14 @@ public class test {
 
 			ArrayList<SimpleMatrix> inputData = readFromFile();
 			for (int i = 0; i < 100; i++) {
-			    double MEAN = 5f; 
-			    double VARIANCE = 4.0f;
-				double[][] m = { { getGaussian(MEAN, VARIANCE) }, { getGaussian(MEAN, VARIANCE) } };
+			    double MEAN1 = 7f; 
+			    double MEAN2 = 1f; 
+			    if(i>50){
+			    	MEAN1= 8f;
+			    	MEAN2 = 5f;
+			    }
+			    double VARIANCE = 1.0f;
+				double[][] m = { { getGaussian(MEAN1, VARIANCE) }, { getGaussian(MEAN2, VARIANCE) } };
 				SimpleMatrix sm = new SimpleMatrix(m);
 				if(writeToFile){
 					toFile.add(new SimpleMatrix(sm));

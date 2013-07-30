@@ -5,6 +5,10 @@ import java.util.ArrayList;
 
 import org.ejml.simple.SimpleMatrix;
 
+import com.javadocmd.simplelatlng.LatLng;
+import com.javadocmd.simplelatlng.LatLngTool;
+import com.javadocmd.simplelatlng.util.LengthUnit;
+
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
 import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
@@ -133,11 +137,30 @@ public class Compressor {
 		return compressionError;
 	}
 
-	private static double euclidianDistance(SimpleMatrix columnVector1, SimpleMatrix columnVector2) {
+	public static double euclidianDistance(SimpleMatrix columnVector1, SimpleMatrix columnVector2) {
 		double distance = 0;
 		SimpleMatrix distVector = columnVector2.minus(columnVector1);
 		distance = MatrixOps.elemPow(distVector, 2).elementSum();
 		return distance;
 	}
+	
+	/*private static double geoDistance(SimpleMatrix columnVector1, SimpleMatrix columnVector2){
+		double lat1 = columnVector1.get(0,0);
+		double lat2 = columnVector2.get(0,0);
+		double lat11 = columnVector1.get(2,0);
+		double lat21 = columnVector2.get(2,0);
+		double lon1 = columnVector1.get(1,0);
+		double lon2 = columnVector1.get(1,0);
+		double lon11 = columnVector1.get(3,0);
+		double lon21 = columnVector1.get(3,0);
+		LatLng point1 = new LatLng(lat1, lon1);
+		LatLng point2 = new LatLng(lat2, lon2);
+		double distance1 = LatLngTool.distance(point1, point2, LengthUnit.METER);		
+		LatLng point3 = new LatLng(lat11, lon11);
+		LatLng point4 = new LatLng(lat21, lon21);
+		double distance2 = LatLngTool.distance(point3, point4, LengthUnit.METER);		
+		
+		return (distance1+distance2);
+	}*/
 
 }
