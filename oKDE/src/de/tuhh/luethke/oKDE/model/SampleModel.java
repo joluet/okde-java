@@ -20,6 +20,9 @@ public class SampleModel extends BaseSampleDistribution {
 
 	private static final float DEFAULT_NO_OF_COMPS_THRES = 6;
 
+	// compression threshold (maximal hellinger distance)
+	public double mCompressionThreshold;
+	
 	// effective number of observed samples
 	protected double mEffectiveNoOfSamples;
 
@@ -29,7 +32,7 @@ public class SampleModel extends BaseSampleDistribution {
 	// threshold to determine when compression is necessary
 	private float mNoOfCompsThreshold;
 
-	public SampleModel() {
+	public SampleModel(double forgettingFactor, double compressionThreshold) {
 		super();
 		this.mSubDistributions = new ArrayList<BaseSampleDistribution>();
 		this.mBandwidthMatrix = null;
@@ -40,6 +43,8 @@ public class SampleModel extends BaseSampleDistribution {
 		this.mSubspaceInverseCovariance = null;
 		this.mGlobalWeight = 0;
 		this.mEffectiveNoOfSamples = 0;
+		this.mForgettingFactor = forgettingFactor;
+		this.mCompressionThreshold = compressionThreshold;
 		mNoOfCompsThreshold = DEFAULT_NO_OF_COMPS_THRES;
 	}
 
@@ -265,7 +270,7 @@ public class SampleModel extends BaseSampleDistribution {
 		mSubDistributions.add(new OneComponentDistribution(weight, mean, covariance, mBandwidthMatrix));
 
 		// calculate mixing weights for old and new weights
-		double mixWeightOld = mEffectiveNoOfSamples / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
+		double mixWeightOld = (mEffectiveNoOfSamples* mForgettingFactor) / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
 		double mixWeightNew = sumOfNewWeights / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
 
 		mEffectiveNoOfSamples = mEffectiveNoOfSamples * mForgettingFactor + 1;
@@ -511,6 +516,17 @@ public class SampleModel extends BaseSampleDistribution {
 		return d;
 	}
 	
+	/**
+	 * Evaluates the conditional probability using the given point vector. 
+	 * 
+	 * Example: 
+	 * If the point vector is (4,1,3,2) and the conditional dimensions are 0,1 the probability of (4,1,3,2) under the condition 
+	 * that x1=4, x2=1 is evaluated.
+	 * 
+	 * @param pointVector This vector defines where the pdf should be evaluated
+	 * @param condDim An array containing the dimensions that shall be taken as conditional variables
+	 * @return The conditional probability 
+	 */
 	public double evaluateConditional(SimpleMatrix pointVector, int[] condDim) {
 		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
 		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
@@ -532,7 +548,8 @@ public class SampleModel extends BaseSampleDistribution {
 		return d/marg;
 	}
 	
-	private double marginal(SimpleMatrix pointVector, int[] margDimensions){
+	
+	public double marginal(SimpleMatrix pointVector, int[] margDimensions){
 		SimpleMatrix tmpMatrix = new SimpleMatrix(margDimensions.length,1);
 		for(int i=0; i<margDimensions.length; i++) {
 			tmpMatrix.set(i,0,pointVector.get(margDimensions[i],0));
@@ -575,22 +592,23 @@ public class SampleModel extends BaseSampleDistribution {
 	}
 	
 	/**
-	 * Finds the volume under the surface described by the function f(x, y) for a <= x <= b, c <= y <= d.
+	 * Finds the volume under the surface described by this KDE. The point that is given as the center
+	 * parameter is taken and a square is defined around this point 
 	 * Using xSegs number of segments across the x axis and ySegs number of segments across the y axis. 
-	 * @param a The lower bound of x.
-	 * @param b The upper bound of x.
-	 * @param c The lower bound of y.
-	 * @param d The upper bound of y.
+	 * @param center A column vector 
 	 * @param xSegs The number of segments in the x axis.
 	 * @param ySegs The number of segments in the y axis.
-	 * @return The volume under f(x, y).
+	 * @return The volume under the pdf.
 	 */
-	public double trapezoidRule(SimpleMatrix fixed , SimpleMatrix bounds, int xSegs, int ySegs) {
-    	int[] condDim = {0,1,2,3};
-		double a = bounds.get(0,0)-200;
-		double b = bounds.get(0,0)+200;
-		double c = bounds.get(1,0)-200;
-		double d = bounds.get(1,0)+200;
+	public double cummulativeConditional(SimpleMatrix fixed , SimpleMatrix center, double squareWidth, int xSegs, int ySegs) {
+    	int[] condDim = new int[center.numRows()];
+    	for(int i=0; i<condDim.length; i++){
+    		condDim[i] = i;
+    	}
+		double a = center.get(0,0)-squareWidth/2;
+		double b = center.get(0,0)+squareWidth/2;
+		double c = center.get(1,0)-squareWidth/2;
+		double d = center.get(1,0)+squareWidth/2;
 	    double xSegSize = (b - a) / xSegs; // length of an x segment.
 	    double ySegSize = (d - c) / ySegs; // length of a y segment.
 	    double volume = 0; // volume under the surface.
@@ -613,6 +631,52 @@ public class SampleModel extends BaseSampleDistribution {
 	            tmp[dim-1][0] = a + (xSegSize * i);
 	        	tmp[dim][0] = c + (ySegSize * (j + 1));
 	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
+	            height /= 4;
+
+	            // height is the average value of the corners of the current segment.
+	            // We can use the average value since a box of this height has the same volume as the original segment shape.
+
+	            // Add the volume of the box to the volume.
+	            if (height>1)
+	            	System.out.println(1);
+	            volume += xSegSize * ySegSize * height;
+	        }
+	    }
+
+	    return volume;
+	}
+	
+	public double cummulativeMarginal(SimpleMatrix fixed , SimpleMatrix center, double squareWidth, int xSegs, int ySegs) {
+		int[] condDim = new int[center.numRows()];
+    	for(int i=0; i<condDim.length; i++){
+    		condDim[i] = i;
+    	}
+		double a = center.get(0,0)-squareWidth/2;
+		double b = center.get(0,0)+squareWidth/2;
+		double c = center.get(1,0)-squareWidth/2;
+		double d = center.get(1,0)+squareWidth/2;
+	    double xSegSize = (b - a) / xSegs; // length of an x segment.
+	    double ySegSize = (d - c) / ySegs; // length of a y segment.
+	    double volume = 0; // volume under the surface.
+    	double[][] tmp = new double[fixed.numRows()+2][1];
+    	for(int i=0; i<fixed.numRows(); i++) {
+    		tmp[i][0] = fixed.get(i,0);
+    	}
+    	int dim = tmp.length-1;
+	    for (int i = 0; i < xSegs; i++) {
+	        for (int j = 0; j < ySegs; j++) {
+	        	tmp[dim-1][0] = a + (xSegSize * i);
+	        	tmp[dim][0] = c + (ySegSize * j);
+	            double height = marginal(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
+	        	tmp[dim][0] = c + (ySegSize * j);
+	            height += marginal(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
+	        	tmp[dim][0] = c + (ySegSize * (j + 1));
+	            height += marginal(new SimpleMatrix(tmp),condDim);
+	            tmp[dim-1][0] = a + (xSegSize * i);
+	        	tmp[dim][0] = c + (ySegSize * (j + 1));
+	            height += marginal(new SimpleMatrix(tmp),condDim);
 	            height /= 4;
 
 	            // height is the average value of the corners of the current segment.
@@ -669,43 +733,6 @@ public class SampleModel extends BaseSampleDistribution {
 	    return volume;
 	}
 	
-	/*public double getVolume(SimpleMatrix pointVector) {
-		
-		double[] borders = new double[(pointVector.numRows())*2];
-		int k = 1;
-		int row = 0;
-		for(int i=0; i<borders.length; i++) {
-			if(i%2 == 0)
-				k = (-1)*k;
-			if(i!=0 && i%2==0)
-				row+=1;
-			double val = pointVector.get(row,0)*0.001;
-			borders[i] = pointVector.get(row,0)+(k*val);
-		}
-		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
-		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
-		ArrayList<Double> weights = new ArrayList<Double>();
-		means = this.getSubMeans();
-		covs = this.getSubSmoothedCovariances();
-		weights = this.getSubWeights();
-		double v = 0d;
-		for(int b=0; b<borders.length; b++) {
-			SimpleMatrix vector = new SimpleMatrix(pointVector.numRows(),1);
-			
-			
-			double n = means.get(0).numRows();
-			double a = Math.pow(Math.sqrt(2 * Math.PI), n);
-			for (int i = 0; i < means.size(); i++) {
-				SimpleMatrix m = means.get(i);
-				SimpleMatrix c = covs.get(i);
-				double w = weights.get(i);
-				double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
-				v += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
-			}
-		}
-		return d;
-	}*/
-
 	/**
 	 * Evaluates the distribution at the given n-dimensional points and returns
 	 * the results in a List of double-values.

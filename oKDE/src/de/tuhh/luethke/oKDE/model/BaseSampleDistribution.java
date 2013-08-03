@@ -39,7 +39,7 @@ public abstract class BaseSampleDistribution {
 	public BaseSampleDistribution() {
 		super();
 		mGlobalWeight = 0;
-		mForgettingFactor = 1;
+		mForgettingFactor = 0;
 	}
 
 	public double getGlobalWeight() {

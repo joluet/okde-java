@@ -32,7 +32,7 @@ public class Projector {
 	 * @param distribution
 	 * @throws EmptyDistributionException
 	 */
-	public static ProjectionData projectSampleDistToSubspace(SampleModel distribution) throws EmptyDistributionException {
+	public static ProjectionData projectSampleDistToSubspace(SampleModel distribution) throws EmptyDistributionException, RuntimeException {
 		ProjectionData projectionData = new ProjectionData();
 		MomentMatcher.matchMoments(distribution);
 		SimpleMatrix globalSmoothedCov = distribution.getmGlobalCovarianceSmoothed();

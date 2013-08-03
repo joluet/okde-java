@@ -18,7 +18,7 @@ import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
 public class Compressor {
 	private final static double CONST_SMALL_TOLERANCE = 1E-10;
 	
-	private final static double D_TH = 0.02;
+	//private final static double D_TH = 0.1;
 
 	private static final float INC_TH_SCALE = 1.5f;
 	private static final float DEC_TH_SCALE = 0.6f;
@@ -37,15 +37,27 @@ public class Compressor {
 		// check wether compression is necessary using hysteresis rule
 		if (dist.getSubMeans().size() <= dist.getNoOfCompsThreshold())
 			return;
-		ProjectionData projectionData = Projector.projectSampleDistToSubspace(dist);
+		ProjectionData projectionData = null;
+		try {
+			projectionData = Projector.projectSampleDistToSubspace(dist);
+		} catch(Exception e) {
+			// if projection fails: stop compression
+			System.out.println("Projection failed. Aborted Compression");
+			return;
+		}
 		revitalizeComponents(dist);
 		//System.out.println("COMPRESS");
 		int noOfCompsBeforeCompression = dist.getSubMeans().size();
 		SampleModel inputModelCopy = new SampleModel(dist);
-		double compressionError = mergeTwoClosestComps(inputModelCopy);
-		while (compressionError < D_TH) {
-			dist.overWirite(inputModelCopy);
+		double compressionError = Double.MAX_VALUE;
+		if(inputModelCopy.getSubDistributions().size() > 1)
 			compressionError = mergeTwoClosestComps(inputModelCopy);
+		while (compressionError < dist.mCompressionThreshold) {
+			dist.overWirite(inputModelCopy);
+			if(inputModelCopy.getSubDistributions().size() > 1)
+				compressionError = mergeTwoClosestComps(inputModelCopy);
+			else
+				compressionError = Double.MAX_VALUE;
 		}
 		Projector.projectSampleDistToOriginalSpace(dist, projectionData);
 		int noOfCompsAfterCompression = dist.getSubMeans().size();
@@ -62,7 +74,7 @@ public class Compressor {
 				OneComponentDistribution oneCompDist = new OneComponentDistribution(subDist);
 				double compressionError = Hellinger.calculateUnscentedHellingerDistance(oneCompDist, subDist);
 				subDist.setGlobalWeight(tmpWeight);
-				if (compressionError >= D_TH) {
+				if (compressionError >= dist.mCompressionThreshold) {
 					OneComponentDistribution subComp1 = subDist.getSubComponents()[0];
 					OneComponentDistribution subComp2 = subDist.getSubComponents()[1];
 					BaseSampleDistribution splitDist1 = null, splitDist2 = null;
