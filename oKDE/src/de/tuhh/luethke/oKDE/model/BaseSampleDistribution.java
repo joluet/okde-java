@@ -33,6 +33,14 @@ public abstract class BaseSampleDistribution {
 	// forgetting factor, to be used for non-stationary distributions
 	protected double mForgettingFactor;
 
+	public double getForgettingFactor() {
+		return mForgettingFactor;
+	}
+
+	public void setForgettingFactor(double forgettingFactor) {
+		this.mForgettingFactor = forgettingFactor;
+	}
+
 	/**
 	 * Create new SampleDist
 	 */

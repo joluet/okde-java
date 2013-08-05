@@ -2,12 +2,9 @@ package de.tuhh.luethke.oKDE.utility;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.ejml.simple.SimpleMatrix;
-
-import com.javadocmd.simplelatlng.LatLng;
-import com.javadocmd.simplelatlng.LatLngTool;
-import com.javadocmd.simplelatlng.util.LengthUnit;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
@@ -19,6 +16,8 @@ public class Compressor {
 	private final static double CONST_SMALL_TOLERANCE = 1E-10;
 	
 	//private final static double D_TH = 0.1;
+	
+	private static final double MIN_EM_DISTANCE = 2.34d;
 
 	private static final float INC_TH_SCALE = 1.5f;
 	private static final float DEC_TH_SCALE = 0.6f;
@@ -32,11 +31,105 @@ public class Compressor {
 			threshold = threshold * DEC_TH_SCALE;
 		dist.setNoOfCompsThreshold(threshold);
 	}
+	
+	public static boolean emUpdate(SampleModel dist, List<Integer> updatePoints) {
+		ArrayList<BaseSampleDistribution> subDistributions = dist.getSubDistributions();
+		ArrayList<SimpleMatrix> means = dist.getSubMeans();
+		ArrayList<SimpleMatrix> smoothedCovariances = dist.getSubSmoothedCovariances();
+		ArrayList<SimpleMatrix> covariances = dist.getSubCovariances();
+		ArrayList<Double> weights = dist.getSubWeights();
+		boolean pointMerged = false;
+		int count = 0;
+		for(int point : updatePoints) {
+			for(int i=0; i<means.size() && i!=point && !pointMerged; i++){
+				if(subDistributions.get(i).getClass() == TwoComponentDistribution.class) {
+					TwoComponentDistribution subComponent = (TwoComponentDistribution)subDistributions.get(i);
+					// calculate mahalanobis distance (x-m)L(x-m)' to each mean until one is small enough
+					double md = means.get(point).minus( means.get(i) ).transpose().mult( smoothedCovariances.get(i).invert() ).mult( means.get(point).minus(means.get(i)) ).trace();
+					if(md < MIN_EM_DISTANCE) {
+						// just add the new point to sub model
+						
+						// which subcomponent is closest?
+						OneComponentDistribution[] subSubComponents = subComponent.getSubComponents();
+						double distance1 = euclidianDistance(subSubComponents[0].getGlobalMean(), means.get(point));
+						double distance2 = euclidianDistance(subSubComponents[1].getGlobalMean(), means.get(point));
 
-	public static void compress(SampleModel dist) throws Exception {
+						int mergeId = 0;
+						if(distance1 < distance2)
+							mergeId = 0;
+						else
+							mergeId = 1;
+						OneComponentDistribution componentToMerge = subSubComponents[mergeId];
+
+							
+						SimpleMatrix[] meansArray = { componentToMerge.getGlobalMean(), means.get(point) };
+						SimpleMatrix[] covarianceArray = { componentToMerge.getGlobalCovariance(), covariances.get(point) };
+						
+						double subSubweight1 = componentToMerge.getGlobalWeight()*subComponent.getGlobalWeight();
+						double subSubweight2 = weights.get(point);
+						double globalWeight = subComponent.getGlobalWeight() + subSubweight2;
+						double subSubWeightSum = subSubweight1 + subSubweight2;
+						subSubweight1 /= subSubWeightSum;
+						subSubweight2 /= subSubWeightSum;
+
+						double[] weightsArray = { subSubweight1, subSubweight2 };
+						
+						
+						OneComponentDistribution oneCompDist = null;
+						try {
+							TwoComponentDistribution twoCompDist = new TwoComponentDistribution(weightsArray, meansArray, covarianceArray, dist.getBandwidthMatrix());
+							double subWeight1 = subSubComponents[0].getGlobalWeight()*subComponent.getGlobalWeight();
+							double subWeight2 = subSubComponents[1].getGlobalWeight()*subComponent.getGlobalWeight();
+							if(mergeId == 0)
+								subWeight1 += weights.get(point);
+							else
+								subWeight2 += weights.get(point);
+							double subWeightSum = subWeight1+subWeight2;
+							subWeight1 /= subWeightSum;
+							subWeight2 /= subWeightSum;
+							
+							MomentMatcher.matchMoments(twoCompDist);
+							oneCompDist = new OneComponentDistribution(twoCompDist);
+							subSubComponents[mergeId] = oneCompDist;
+							subSubComponents[0].setGlobalWeight(subWeight1);
+							subSubComponents[1].setGlobalWeight(subWeight2);
+							MomentMatcher.matchMoments(subComponent);
+							subComponent.setGlobalWeight(globalWeight);
+						} catch (EmptyDistributionException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						/*						
+						Double[] subWeights = twoCompDist.getSubWeights();
+						double newWeight1 = subWeights[0] / (subWeights[0] + subWeights[1]);
+						double newWeight2 = subWeights[1] / (subWeights[0] + subWeights[1]);
+						twoCompDist.getSubComponents()[0].setGlobalWeight(newWeight1);
+						twoCompDist.getSubComponents()[1].setGlobalWeight(newWeight2);
+						dist.getSubDistributions().set(i, twoCompDist);
+						*/
+						
+						dist.getSubDistributions().remove(point);
+						count++;
+						pointMerged = true;
+					}
+				}
+			}
+		}
+		return (count == updatePoints.size());
+	}
+
+	public static void compress(SampleModel dist, ArrayList<Integer> newComponents) throws Exception {
 		// check wether compression is necessary using hysteresis rule
 		if (dist.getSubMeans().size() <= dist.getNoOfCompsThreshold())
 			return;
+		// try em update
+		boolean successfulEMUpdate = emUpdate(dist, newComponents);
+		if(successfulEMUpdate) {
+			return;
+		}
 		ProjectionData projectionData = null;
 		try {
 			projectionData = Projector.projectSampleDistToSubspace(dist);

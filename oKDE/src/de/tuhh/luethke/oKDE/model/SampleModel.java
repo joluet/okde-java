@@ -13,12 +13,15 @@ import org.ejml.simple.SimpleSVD;
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.utility.Compressor;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
-import de.tuhh.luethke.oKDE.utility.ProjectionData;
-import de.tuhh.luethke.oKDE.utility.Projector;
 
 public class SampleModel extends BaseSampleDistribution {
 
 	private static final float DEFAULT_NO_OF_COMPS_THRES = 6;
+	
+	// When mahalanobis distance gets bigger than this the component does not contribute
+	// to the density that should be calculated
+	// exp(-50) ~ 10E-22
+	private static final double MAX_MAHALANOBIS_DIST = 50;
 
 	// compression threshold (maximal hellinger distance)
 	public double mCompressionThreshold;
@@ -30,7 +33,9 @@ public class SampleModel extends BaseSampleDistribution {
 	protected ArrayList<BaseSampleDistribution> mSubDistributions;
 
 	// threshold to determine when compression is necessary
-	private float mNoOfCompsThreshold;
+	public float mNoOfCompsThreshold;
+	
+	public long bwtime = 0;
 
 	public SampleModel(double forgettingFactor, double compressionThreshold) {
 		super();
@@ -147,8 +152,13 @@ public class SampleModel extends BaseSampleDistribution {
 
 		// augment distribution
 		addDistributions(weights, means, covariances);
-
-		updateDistribution();
+		
+		// save indices of new components for em updates
+		ArrayList<Integer> newPoints = new ArrayList<Integer>();
+		for(int i=(mSubDistributions.size()-means.length); i<mSubDistributions.size(); i++) {
+			newPoints.add(i);
+		}
+		updateDistribution(newPoints);
 	}
 
 	public void updateDistribution(SimpleMatrix mean, SimpleMatrix covariance, double weight) throws EmptyDistributionException,
@@ -157,11 +167,13 @@ public class SampleModel extends BaseSampleDistribution {
 
 		// augment distribution
 		addDistribution(weight, mean, covariance);
-
-		updateDistribution();
+		ArrayList<Integer> newPoints = new ArrayList<Integer>();
+		// only one component was added, save index for em updates
+		newPoints.add(mSubDistributions.size()-1);
+		updateDistribution(newPoints);
 	}
 
-	private void updateDistribution() {
+	private void updateDistribution(ArrayList<Integer> newPoints) {
 		List<BaseSampleDistribution> subDists = getSubDistributions();
 		Double[] weights = new Double[subDists.size()];
 		for (int i = 0; i < subDists.size(); i++)
@@ -193,8 +205,10 @@ public class SampleModel extends BaseSampleDistribution {
 			e.printStackTrace();
 		}
 		// reestimate bandwidth as explained in oKDE paper
+		long time = System.currentTimeMillis();
 		double bandwidthFactor = reestimateBandwidth(subSpaceDist.getSubMeans().toArray(new SimpleMatrix[0]), subSpaceDist.getSubCovariances()
 				.toArray(new SimpleMatrix[0]), weights, subSpaceDist.getSubspaceGlobalCovariance(), mEffectiveNoOfSamples);
+		bwtime += (System.currentTimeMillis()-time);
 		//System.out.println("BANDW" + bandwidthFactor);
 		// project Bandwidth into original space
 		SimpleMatrix bandwidthMatrix = projectBandwidthToOriginalSpace(subSpaceDist, bandwidthFactor);
@@ -209,7 +223,7 @@ public class SampleModel extends BaseSampleDistribution {
 			//System.out.println("globcov null");
 		}
 		try {
-			Compressor.compress(this);
+			Compressor.compress(this, newPoints);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -239,7 +253,7 @@ public class SampleModel extends BaseSampleDistribution {
 		}
 
 		// calculate mixing weights for old and new weights
-		double mixWeightOld = mEffectiveNoOfSamples / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
+		double mixWeightOld = (mEffectiveNoOfSamples* mForgettingFactor) / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
 		double mixWeightNew = sumOfNewWeights / (mEffectiveNoOfSamples * mForgettingFactor + sumOfNewWeights);
 
 		mEffectiveNoOfSamples = mEffectiveNoOfSamples * mForgettingFactor + weights.length;
@@ -435,9 +449,9 @@ public class SampleModel extends BaseSampleDistribution {
 				I = I + f_t * c * w2 * w1 * eta;
 			}
 		}
-		time = time - System.currentTimeMillis();
+		/*time = System.currentTimeMillis()-time;
 		if((time) > 100)
-			System.out.println("Time for IntSqrdHessian: "+ (time/1000)+"s");
+			System.out.println("Time for IntSqrdHessian: "+ ((double)time/1000)+"s"+"  loopcount: "+N);*/
 		return I;
 	}
 
@@ -506,14 +520,30 @@ public class SampleModel extends BaseSampleDistribution {
 		double d = 0d;
 		double n = means.get(0).numRows();
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+		
+		ArrayList<Double> mahalanobisDistances = mahalanobis(pointVector, means, covs);
+
+		for (int i = 0; i < means.size(); i++) {
+			// check wether the component actually contributes to to the density at given point 
+			if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
+				SimpleMatrix m = means.get(i);
+				SimpleMatrix c = covs.get(i);
+				double w = weights.get(i);
+				d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp((-0.5d) * mahalanobisDistances.get(i))) * w;
+			}
+		}
+		return d;
+	}
+	
+	private ArrayList<Double> mahalanobis(SimpleMatrix x, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covs) {
+		ArrayList<Double> mahalanobisDistances = new java.util.ArrayList<Double>();
 		for (int i = 0; i < means.size(); i++) {
 			SimpleMatrix m = means.get(i);
 			SimpleMatrix c = covs.get(i);
-			double w = weights.get(i);
-			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
-			d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
+			double distance = x.minus(m).transpose().mult(c.invert()).mult(x.minus(m)).trace();
+			mahalanobisDistances.add(distance);
 		}
-		return d;
+		return mahalanobisDistances;
 	}
 	
 	/**
@@ -528,6 +558,7 @@ public class SampleModel extends BaseSampleDistribution {
 	 * @return The conditional probability 
 	 */
 	public double evaluateConditional(SimpleMatrix pointVector, int[] condDim) {
+		long time = System.currentTimeMillis();
 		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
 		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
 		ArrayList<Double> weights = new ArrayList<Double>();
@@ -537,12 +568,15 @@ public class SampleModel extends BaseSampleDistribution {
 		double d = 0d;
 		double n = means.get(0).numRows();
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+		ArrayList<Double> mahalanobisDistances = mahalanobis(pointVector, means, covs);
 		for (int i = 0; i < means.size(); i++) {
-			SimpleMatrix m = means.get(i);
-			SimpleMatrix c = covs.get(i);
-			double w = weights.get(i);
-			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
-			d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
+			// check wether the component actually contributes to to the density at given point 
+			if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
+				SimpleMatrix m = means.get(i);
+				SimpleMatrix c = covs.get(i);
+				double w = weights.get(i);
+				d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp((-0.5d) * mahalanobisDistances.get(i))) * w;
+			}
 		}
 		double marg = marginal(pointVector,condDim);
 		return d/marg;
@@ -581,12 +615,15 @@ public class SampleModel extends BaseSampleDistribution {
 		double d = 0d;
 		double n = means.get(0).numRows();
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+		ArrayList<Double> mahalanobisDistances = mahalanobis(pointVector, means, covs);
 		for (int i = 0; i < means.size(); i++) {
-			SimpleMatrix m = means.get(i);
-			SimpleMatrix c = covs.get(i);
-			double w = weights.get(i);
-			double tmp = (-0.5d) * pointVector.minus(m).transpose().mult(c.invert()).mult(pointVector.minus(m)).trace();
-			d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp(tmp)) * w;
+			// check wether the component actually contributes to to the density at given point 
+			if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
+				SimpleMatrix m = means.get(i);
+				SimpleMatrix c = covs.get(i);
+				double w = weights.get(i);
+				d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp((-0.5d) * mahalanobisDistances.get(i))) * w;
+			}
 		}
 		return d;
 	}
