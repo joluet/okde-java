@@ -250,7 +250,7 @@ public class Compressor {
 	public static double euclidianDistance(SimpleMatrix columnVector1, SimpleMatrix columnVector2) {
 		double distance = 0;
 		SimpleMatrix distVector = columnVector2.minus(columnVector1);
-		distance = MatrixOps.elemPow(distVector, 2).elementSum();
+		distance = Math.sqrt(MatrixOps.elemPow(distVector, 2).elementSum());
 		return distance;
 	}
 	
