@@ -22,7 +22,7 @@ public class Compressor {
 	private static final float INC_TH_SCALE = 1.5f;
 	private static final float DEC_TH_SCALE = 0.6f;
 	private static final float CHECK_IF_DEC_SCALE = 0.5f;
-
+	
 	private static void setNoOfComponentsThreshold(SampleModel dist, int noOfCompsBeforeCompression, int noOfCompsAfterCompression) {
 		float threshold = dist.getNoOfCompsThreshold();
 		if (noOfCompsAfterCompression > threshold)
@@ -95,6 +95,11 @@ public class Compressor {
 							subSubComponents[1].setGlobalWeight(subWeight2);
 							MomentMatcher.matchMoments(subComponent);
 							subComponent.setGlobalWeight(globalWeight);
+							
+							dist.mEMCount++;
+							/*double compressionError = Hellinger.calculateUnscentedHellingerDistance(oneCompDist, twoCompDist);
+							dist.mEMError = (dist.mEMError*dist.mEMCount + compressionError)/(dist.mEMCount + 1);
+							dist.mEMCount++;*/
 						} catch (EmptyDistributionException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -191,7 +196,7 @@ public class Compressor {
 			}
 		}
 	}
-
+	
 	private static double mergeTwoClosestComps(SampleModel dist) throws IllegalArgumentException, InvocationTargetException, NoSuchMethodException,
 			SecurityException, InstantiationException, IllegalAccessException {
 		double compressionError = 0;

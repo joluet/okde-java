@@ -35,8 +35,11 @@ public class SampleModel extends BaseSampleDistribution {
 	// threshold to determine when compression is necessary
 	public float mNoOfCompsThreshold;
 	
+	public double mEMError=0;
+	public double mEMCount=0;
+	
 	public long bwtime = 0;
-
+	
 	public SampleModel(double forgettingFactor, double compressionThreshold) {
 		super();
 		this.mSubDistributions = new ArrayList<BaseSampleDistribution>();
@@ -535,12 +538,30 @@ public class SampleModel extends BaseSampleDistribution {
 		return d;
 	}
 	
-	private ArrayList<Double> mahalanobis(SimpleMatrix x, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covs) {
+	public ArrayList<Double> mahalanobis(SimpleMatrix x, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covs) {
 		ArrayList<Double> mahalanobisDistances = new java.util.ArrayList<Double>();
 		for (int i = 0; i < means.size(); i++) {
 			SimpleMatrix m = means.get(i);
 			SimpleMatrix c = covs.get(i);
 			double distance = x.minus(m).transpose().mult(c.invert()).mult(x.minus(m)).trace();
+			mahalanobisDistances.add(distance);
+		}
+		return mahalanobisDistances;
+	}
+	
+	public ArrayList<Double> mahalanobisMarginal(SimpleMatrix x, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covs) {
+		int[] margDimensions = {0,1,2,3};
+		ArrayList<Double> mahalanobisDistances = new java.util.ArrayList<Double>();
+		x.set(x.numRows()-2,0,0);
+		x.set(x.numRows()-1,0,0);
+		for (int i = 0; i < means.size(); i++) {
+			SimpleMatrix m = means.get(i);
+			SimpleMatrix tmpMatrix = new SimpleMatrix(m.numRows(),1);
+			for(int j=0; j<margDimensions.length; j++) {
+				tmpMatrix.set(j,0,m.get(margDimensions[j],0));
+			}
+			SimpleMatrix c = covs.get(i);
+			double distance = x.minus(tmpMatrix).transpose().mult(c.invert()).mult(x.minus(tmpMatrix)).trace();
 			mahalanobisDistances.add(distance);
 		}
 		return mahalanobisDistances;
@@ -638,7 +659,7 @@ public class SampleModel extends BaseSampleDistribution {
 	 * @return The volume under the pdf.
 	 */
 	public double cummulativeConditional(SimpleMatrix fixed , SimpleMatrix center, double squareWidth, int xSegs, int ySegs) {
-    	int[] condDim = new int[center.numRows()];
+    	int[] condDim = new int[fixed.numRows()];
     	for(int i=0; i<condDim.length; i++){
     		condDim[i] = i;
     	}
