@@ -3,25 +3,31 @@ package de.tuhh.luethke.oKDE.model;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
+import org.ejml.simple.SimpleEVD;
 import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.utility.Compressor;
+import de.tuhh.luethke.oKDE.utility.HashableSimpleMatrix;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
+import de.tuhh.luethke.oKDE.utility.SearchResult;
 
 public class SampleModel extends BaseSampleDistribution {
 
 	private static final float DEFAULT_NO_OF_COMPS_THRES = 6;
 	
+	private HashMap<HashableSimpleMatrix, Double> mProbabilityCache = new HashMap<HashableSimpleMatrix, Double>();
+	
 	// When mahalanobis distance gets bigger than this the component does not contribute
 	// to the density that should be calculated
-	// exp(-50) ~ 10E-22
-	private static final double MAX_MAHALANOBIS_DIST = 50;
+	// exp(-40) ~ 5E-18
+	private static final double MAX_MAHALANOBIS_DIST = 40;
 
 	// compression threshold (maximal hellinger distance)
 	public double mCompressionThreshold;
@@ -511,6 +517,186 @@ public class SampleModel extends BaseSampleDistribution {
 			mSubDistributions.get(i).setGlobalWeight(weights.get(i));
 		}
 	}
+	
+	/**
+	 * This method derives the conditional distribution of the actual sample model kde with distribution p(x).
+	 * It takes a condition parameter that is a vector c of dimension m. Using this vector
+	 * it finds the conditional distribution p(x*|c) where c=(x_0,...,x_m), x*=(x_m+1,...,x_n).
+	 * For detailed description see:
+	 * @param condition A vector that defines c in p(x*|c)
+	 * @return The conditional distribution of this sample model under the given condition
+	 */
+	public ConditionalDistribution getConditionalDistribution(SimpleMatrix condition){
+		int lenCond = condition.numRows();
+		
+		ArrayList<SimpleMatrix> means = this.getSubMeans();
+		ArrayList<SimpleMatrix> conditionalMeans = new ArrayList<SimpleMatrix>();
+
+		ArrayList<SimpleMatrix> covs = this.getSubSmoothedCovariances();
+		ArrayList<SimpleMatrix> conditionalCovs = new ArrayList<SimpleMatrix>();
+		
+		ArrayList<Double> weights = this.getSubWeights();
+		ArrayList<Double> conditionalWeights = new ArrayList<Double>();
+
+		ConditionalDistribution result = null;
+		
+		double n = condition.numRows();
+		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+
+		
+		for(int i=0; i<means.size(); i++) {
+			SimpleMatrix c = covs.get(i);
+			SimpleMatrix invC = c.invert();
+			SimpleMatrix m = means.get(i);
+			int lenM1 = m.numRows()-lenCond;
+			SimpleMatrix m1 = new SimpleMatrix(lenM1,1);
+			SimpleMatrix m2 = new SimpleMatrix(lenCond,1);
+			
+			// extract all elements from inverse covariance that correspond only to m1
+			// that means extract the block in the right bottom corner with height=width=lenM1
+			SimpleMatrix newC1 = new SimpleMatrix(lenM1,lenM1);
+			for(int j=0; j<lenM1; j++) {
+				for(int k=0; k<lenM1; k++) {
+					newC1.set(j, k, invC.get(j+lenCond,k+lenCond) );
+				}
+			}
+			// extract all elements from inverse covariance that correspond to m1 and m2
+			// from the the block in the left bottom corner with height=width=lenM1
+			SimpleMatrix newC2 = new SimpleMatrix(lenM1,lenCond);
+			for(int j=0; j<lenM1; j++) {
+				for(int k=0; k<lenCond; k++) {
+					newC2.set(j, k, invC.get(j+lenCond,k) );
+				}
+			}		
+			
+			//extract first rows from mean to m2
+			for(int j=0; j<lenCond; j++) {
+				m2.set(j,0,m.get(j,0));
+			}
+			//extract last rows from mean to m1
+			for(int j=0; j<lenM1; j++) {
+				m1.set(j,0,m.get(j+lenCond,0));
+			}
+			SimpleMatrix invNewC1 = newC1.invert();
+			// calculate new mean and new covariance of conditional distribution
+			SimpleMatrix condMean = m1.minus( invNewC1.mult(newC2).mult( condition.minus(m2) ) );
+			SimpleMatrix condCovariance = invNewC1;
+			conditionalMeans.add(condMean);
+			conditionalCovs.add(condCovariance);
+			
+			// calculate new weights
+			
+			// extract all elements from inverse covariance that correspond only to m2
+			// that means extract the block in the left top corner with height=width=lenCond
+			SimpleMatrix newC22 = new SimpleMatrix(lenCond,lenCond);
+			for(int j=0; j<lenCond; j++) {
+				for(int k=0; k<lenCond; k++) {
+					newC22.set(j, k, c.get(j,k) );
+				}
+			}
+			double mahalanobisDistance = condition.minus(m2).transpose().mult(newC22.invert()).mult(condition.minus(m2)).trace();
+			double newWeight = ((1 / (a * Math.sqrt(newC22.determinant()))) * Math.exp((-0.5d) * mahalanobisDistance))* weights.get(i);
+			conditionalWeights.add(newWeight);
+		}
+		// normalize weights
+		double weightSum = 0;
+		for(int i=0; i<conditionalWeights.size(); i++) {
+			weightSum += conditionalWeights.get(i);
+		}
+		for(int i=0; i<conditionalWeights.size(); i++) {
+			double weight = conditionalWeights.get(i);
+			weight = weight /weightSum;
+			conditionalWeights.set(i,weight);
+		}
+		result = new ConditionalDistribution(conditionalMeans, conditionalCovs, conditionalWeights);
+		return result;
+	}
+	
+
+	/**
+	 * Find Maximum by gradient-quadratic search.
+	 * First a conditional distribution is derived from the kde.
+	 * @param start
+	 * @return
+	 */
+	public SearchResult gradQuadrSearch(SimpleMatrix start){
+		
+		
+		SimpleMatrix condVector = new SimpleMatrix(4,1);
+		for(int i=0; i<condVector.numRows(); i++){
+			condVector.set(i,0,start.get(i,0));
+		}
+		ConditionalDistribution conditionalDist = getConditionalDistribution(condVector);
+		
+		ArrayList<SimpleMatrix> means = conditionalDist.conditionalMeans;
+		ArrayList<SimpleMatrix> covs = conditionalDist.conditionalCovs;
+		ArrayList<Double> weights = conditionalDist.conditionalWeights;
+
+		SimpleMatrix gradient = new SimpleMatrix(2,1);
+		SimpleMatrix hessian = new SimpleMatrix(2,2);
+		double n = means.get(0).numRows();
+		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+		
+		SimpleMatrix x = new SimpleMatrix(2,1);
+		x.set(0,0,start.get(start.numRows()-2,0));
+		x.set(1,0,start.get(start.numRows()-1,0));
+		ArrayList<Double> mahalanobisDistances;
+		double step = 10;
+		double probability = 0;
+		SimpleMatrix gradStep = null;
+		do {
+			mahalanobisDistances = mahalanobis(x, means, covs);
+			//calculate gradient and hessian:
+			double prob = 0;
+			for (int i = 0; i < means.size(); i++) {
+				// check wether the component actually contributes to to the density at given point 
+				if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
+					SimpleMatrix m = means.get(i);
+
+					SimpleMatrix dm = m.minus(x);
+					SimpleMatrix c = covs.get(i);
+
+					
+					SimpleMatrix invC = c.invert();
+					double w = weights.get(i);
+					//probability p(x,m)
+					double p = ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp((-0.5d) * mahalanobisDistances.get(i))) * w;
+					prob += p; 
+					gradient = gradient.plus( invC.mult(dm).scale(p) );
+					hessian = hessian.plus( invC.mult( dm.mult(dm.transpose()).minus(c) ).mult(invC).scale(p) );
+				}
+
+
+			}
+			//prob /= a;
+			int[] condDim = {0,1,2,3};
+			double comp = evaluateConditional(start, condDim);
+			/*gradient = gradient.scale(1/a);
+			hessian = hessian.scale(1/a);*/
+			// save x
+			SimpleMatrix xOld = new SimpleMatrix(x);
+			double tst = evaluate(xOld, means, covs, weights);
+			SimpleEVD hessianEVD = hessian.eig();
+			int maxEVIndex = hessianEVD.getIndexMax();
+			if(hessianEVD.getEigenvalue(maxEVIndex).getReal() < 0){
+				gradStep = hessian.invert().mult(gradient);
+				x = xOld.minus(gradStep);
+			}
+			double prob1 = 	evaluate(x, means, covs, weights);
+			if( prob1 <= prob | hessianEVD.getEigenvalue(maxEVIndex).getReal() >= 0) {
+				gradStep = gradient.scale(step);
+				x = xOld.plus(gradStep);
+				while(evaluate(x, means, covs, weights) < prob){
+					step = step/2;
+					gradStep = gradient.scale(step);
+					x = xOld.plus(gradStep);
+				}
+			}
+			probability =	evaluate(x, means, covs, weights); 
+		}while(gradStep==null | gradStep.elementMaxAbs() > 0.0001);
+		
+		return new SearchResult(x, probability);
+	}
 
 	@Override
 	public double evaluate(SimpleMatrix pointVector) {
@@ -520,6 +706,25 @@ public class SampleModel extends BaseSampleDistribution {
 		means = this.getSubMeans();
 		covs = this.getSubSmoothedCovariances();
 		weights = this.getSubWeights();
+		double d = 0d;
+		double n = means.get(0).numRows();
+		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+		
+		ArrayList<Double> mahalanobisDistances = mahalanobis(pointVector, means, covs);
+
+		for (int i = 0; i < means.size(); i++) {
+			// check wether the component actually contributes to to the density at given point 
+			if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
+				SimpleMatrix m = means.get(i);
+				SimpleMatrix c = covs.get(i);
+				double w = weights.get(i);
+				d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp((-0.5d) * mahalanobisDistances.get(i))) * w;
+			}
+		}
+		return d;
+	}
+	
+	public double evaluate(SimpleMatrix pointVector, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covs, ArrayList<Double> weights) {
 		double d = 0d;
 		double n = means.get(0).numRows();
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
@@ -549,7 +754,7 @@ public class SampleModel extends BaseSampleDistribution {
 		return mahalanobisDistances;
 	}
 	
-	public ArrayList<Double> mahalanobisMarginal(SimpleMatrix x, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covs) {
+	/*public ArrayList<Double> mahalanobisMarginal(SimpleMatrix x, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covs) {
 		int[] margDimensions = {0,1,2,3};
 		ArrayList<Double> mahalanobisDistances = new java.util.ArrayList<Double>();
 		x.set(x.numRows()-2,0,0);
@@ -565,6 +770,10 @@ public class SampleModel extends BaseSampleDistribution {
 			mahalanobisDistances.add(distance);
 		}
 		return mahalanobisDistances;
+	}*/
+	
+	public void resetProbabilityCache(){
+		mProbabilityCache.clear();
 	}
 	
 	/**
@@ -579,20 +788,23 @@ public class SampleModel extends BaseSampleDistribution {
 	 * @return The conditional probability 
 	 */
 	public double evaluateConditional(SimpleMatrix pointVector, int[] condDim) {
-		long time = System.currentTimeMillis();
-		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
-		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
-		ArrayList<Double> weights = new ArrayList<Double>();
-		means = this.getSubMeans();
-		covs = this.getSubSmoothedCovariances();
-		weights = this.getSubWeights();
+		if(mProbabilityCache.containsKey(new HashableSimpleMatrix(pointVector))){
+			return mProbabilityCache.get(new HashableSimpleMatrix(pointVector));
+		}
+		
+		ArrayList<SimpleMatrix> means = this.getSubMeans();
+		ArrayList<SimpleMatrix> covs = this.getSubSmoothedCovariances();
+		ArrayList<Double> weights = this.getSubWeights();
+		
 		double d = 0d;
 		double n = means.get(0).numRows();
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
 		ArrayList<Double> mahalanobisDistances = mahalanobis(pointVector, means, covs);
+		int count =0;
 		for (int i = 0; i < means.size(); i++) {
 			// check wether the component actually contributes to to the density at given point 
 			if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
+				count++;
 				SimpleMatrix m = means.get(i);
 				SimpleMatrix c = covs.get(i);
 				double w = weights.get(i);
@@ -600,7 +812,9 @@ public class SampleModel extends BaseSampleDistribution {
 			}
 		}
 		double marg = marginal(pointVector,condDim);
-		return d/marg;
+		double cond = d/marg;
+		mProbabilityCache.put(new HashableSimpleMatrix(pointVector), cond);
+		return cond;
 	}
 	
 	
@@ -613,9 +827,9 @@ public class SampleModel extends BaseSampleDistribution {
 		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
 		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
 		ArrayList<Double> weights = new ArrayList<Double>();
-		means = this.getSubMeans();
-		covs = this.getSubSmoothedCovariances();
-		weights = this.getSubWeights();
+		means.addAll(this.getSubMeans());
+		covs.addAll(this.getSubSmoothedCovariances());
+		weights.addAll(this.getSubWeights());
 		for(int i=0; i<means.size(); i++){
 			double[][] m = new double[margDimensions.length][1];
 			for(int j=0; j<margDimensions.length; j++) {
@@ -638,7 +852,7 @@ public class SampleModel extends BaseSampleDistribution {
 		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
 		ArrayList<Double> mahalanobisDistances = mahalanobis(pointVector, means, covs);
 		for (int i = 0; i < means.size(); i++) {
-			// check wether the component actually contributes to to the density at given point 
+			// check whether the component actually contributes to to the density at given point 
 			if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
 				SimpleMatrix m = means.get(i);
 				SimpleMatrix c = covs.get(i);
