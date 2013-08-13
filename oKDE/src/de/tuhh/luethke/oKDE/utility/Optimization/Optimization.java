@@ -1,4 +1,4 @@
-package de.tuhh.luethke.oKDE.utility;
+package de.tuhh.luethke.oKDE.utility.Optimization;
 
 import java.util.ArrayList;
 import java.util.List;

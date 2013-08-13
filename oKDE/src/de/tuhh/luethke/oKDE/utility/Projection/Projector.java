@@ -13,8 +13,8 @@ import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
 import de.tuhh.luethke.oKDE.model.SampleModel;
 import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
-import de.tuhh.luethke.oKDE.utility.MatrixOps;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
+import de.tuhh.luethke.oKDE.utility.Matrices.MatrixOps;
 
 /**
  * This class transforms a sample distribution that is lying in a degenerate

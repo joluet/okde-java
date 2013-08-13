@@ -11,8 +11,7 @@ import de.tuhh.luethke.oKDE.Exceptions.TooManyComponentsException;
 import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.ThreeComponentDistribution;
 import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
-import de.tuhh.luethke.oKDE.utility.MatrixOps;
-import de.tuhh.luethke.oKDE.utility.SigmaPoint;
+import de.tuhh.luethke.oKDE.utility.Matrices.MatrixOps;
 
 public class Hellinger {
 

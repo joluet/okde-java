@@ -6,7 +6,7 @@ import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
 import de.tuhh.luethke.oKDE.Exceptions.TooManyComponentsException;
-import de.tuhh.luethke.oKDE.utility.MatrixOps;
+import de.tuhh.luethke.oKDE.utility.Matrices.MatrixOps;
 
 public class OneComponentDistribution extends BaseSampleDistribution {
 
@@ -15,7 +15,6 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 		mGlobalWeight = w;
 		mGlobalMean = mean;
 		mGlobalCovariance = covariance;
-		// initialize bandwidth matrix to zero
 		mBandwidthMatrix = bandwidth;
 		mForgettingFactor = 1;
 	}
@@ -44,7 +43,6 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 	 */
 	public TwoComponentDistribution split(double parentWeight){
 		SimpleSVD<?> svd = mGlobalCovariance.svd(true);
-		SimpleMatrix U = svd.getU();
 		SimpleMatrix S = svd.getW();
 		SimpleMatrix V = svd.getV();
 		SimpleMatrix d = S.extractDiag();
@@ -52,7 +50,6 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 		int maxIndex = MatrixOps.maxVectorElementIndex(d);
 		int len = mGlobalCovariance.numRows();
 		SimpleMatrix M = new SimpleMatrix(len,1);
-		//System.out.println("numrows: "+M.numRows());
 		M.set(maxIndex, 0, 1.0d);
 		SimpleMatrix dMean = V.mult(M).scale(0.5*Math.sqrt(max));
 		SimpleMatrix meanSplit1 = mGlobalMean.plus(dMean);
@@ -105,6 +102,9 @@ public class OneComponentDistribution extends BaseSampleDistribution {
 		return resultPoints;
 	}
 	
+	/**
+	 * @see de.tuhh.luethke.oKDE.model.BaseSampleDistribution#setBandwidthMatrix(SimpleMatrix mBandwidthMatrix)
+	 */
 	@Override
 	public void setBandwidthMatrix(SimpleMatrix mBandwidthMatrix) {
 		this.mBandwidthMatrix = mBandwidthMatrix;

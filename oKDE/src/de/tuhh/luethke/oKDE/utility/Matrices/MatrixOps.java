@@ -1,4 +1,4 @@
-package de.tuhh.luethke.oKDE.utility;
+package de.tuhh.luethke.oKDE.utility.Matrices;
 
 import java.util.List;
 

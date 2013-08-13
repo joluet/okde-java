@@ -11,8 +11,8 @@ import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
 import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.SampleModel;
 import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
-import de.tuhh.luethke.oKDE.utility.MatrixOps;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
+import de.tuhh.luethke.oKDE.utility.Matrices.MatrixOps;
 import de.tuhh.luethke.oKDE.utility.Projection.ProjectionData;
 import de.tuhh.luethke.oKDE.utility.Projection.Projector;
 

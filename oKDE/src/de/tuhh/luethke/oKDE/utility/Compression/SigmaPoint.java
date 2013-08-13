@@ -1,4 +1,4 @@
-package de.tuhh.luethke.oKDE.utility;
+package de.tuhh.luethke.oKDE.utility.Compression;
 
 import org.ejml.simple.SimpleMatrix;
 

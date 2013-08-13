@@ -13,10 +13,10 @@ import org.ejml.simple.SimpleMatrix;
 import org.ejml.simple.SimpleSVD;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
-import de.tuhh.luethke.oKDE.utility.HashableSimpleMatrix;
 import de.tuhh.luethke.oKDE.utility.MomentMatcher;
-import de.tuhh.luethke.oKDE.utility.SearchResult;
 import de.tuhh.luethke.oKDE.utility.Compression.Compressor;
+import de.tuhh.luethke.oKDE.utility.Matrices.HashableSimpleMatrix;
+import de.tuhh.luethke.oKDE.utility.Optimization.SearchResult;
 
 public class SampleModel extends BaseSampleDistribution {
 
