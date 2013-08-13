@@ -519,6 +519,68 @@ public class SampleModel extends BaseSampleDistribution {
 	}
 	
 	/**
+	 * This method derives the conditional distribution of the sample model kde with distribution p(x).
+	 * It marginalizes on the first n dimensions. The number n is given as a parameter.
+	 * @param firstDimensions
+	 * @return
+	 */
+	public ConditionalDistribution getMarginalDistribution(int n){
+		ArrayList<SimpleMatrix> means = this.getSubMeans();
+		ArrayList<SimpleMatrix> marginalMeans = new ArrayList<SimpleMatrix>();
+
+		ArrayList<SimpleMatrix> covs = this.getSubSmoothedCovariances();
+		ArrayList<SimpleMatrix> marginalCovs = new ArrayList<SimpleMatrix>();
+		
+		ArrayList<Double> weights = this.getSubWeights();
+		ArrayList<Double> marginalWeights = new ArrayList<Double>();
+
+		ConditionalDistribution result = null;
+		
+		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
+
+		
+		for(int i=0; i<means.size(); i++) {
+			SimpleMatrix c = covs.get(i);
+			SimpleMatrix m = means.get(i);
+			SimpleMatrix m1 = new SimpleMatrix(n,1);
+			
+			// extract all elements from covariance that correspond only to m1
+			// that means extract the block in the left top corner with height=width=n
+			SimpleMatrix newC1 = new SimpleMatrix(n,n);
+			for(int j=0; j<n; j++) {
+				for(int k=0; k<n; k++) {
+					newC1.set(j, k, c.get(j,k) );
+				}
+			}
+			//extract last rows from mean to m1
+			for(int j=0; j<n; j++) {
+				m1.set(j,0,m.get(j,0));
+			}
+			
+			marginalMeans.add(m1);
+			marginalCovs.add(newC1);
+			
+			// calculate new weights
+			/*
+			double mahalanobisDistance = condition.minus(m2).transpose().mult(newC22.invert()).mult(condition.minus(m2)).trace();
+			double newWeight = ((1 / (a * Math.sqrt(newC22.determinant()))) * Math.exp((-0.5d) * mahalanobisDistance))* weights.get(i);
+			conditionalWeights.add(newWeight);*/
+		}
+		// normalize weights
+		/*double weightSum = 0;
+		for(int i=0; i<conditionalWeights.size(); i++) {
+			weightSum += conditionalWeights.get(i);
+		}
+		for(int i=0; i<conditionalWeights.size(); i++) {
+			double weight = conditionalWeights.get(i);
+			weight = weight /weightSum;
+			conditionalWeights.set(i,weight);
+		}*/
+		result = new ConditionalDistribution(marginalMeans, marginalCovs, weights);
+		return result;
+	}
+	
+	/**
 	 * This method derives the conditional distribution of the actual sample model kde with distribution p(x).
 	 * It takes a condition parameter that is a vector c of dimension m. Using this vector
 	 * it finds the conditional distribution p(x*|c) where c=(x_0,...,x_m), x*=(x_m+1,...,x_n).
@@ -641,7 +703,7 @@ public class SampleModel extends BaseSampleDistribution {
 		x.set(0,0,start.get(start.numRows()-2,0));
 		x.set(1,0,start.get(start.numRows()-1,0));
 		ArrayList<Double> mahalanobisDistances;
-		double step = 10;
+		double step = 1;
 		double probability = 0;
 		SimpleMatrix gradStep = null;
 		do {
@@ -668,14 +730,8 @@ public class SampleModel extends BaseSampleDistribution {
 
 
 			}
-			//prob /= a;
-			int[] condDim = {0,1,2,3};
-			double comp = evaluateConditional(start, condDim);
-			/*gradient = gradient.scale(1/a);
-			hessian = hessian.scale(1/a);*/
 			// save x
 			SimpleMatrix xOld = new SimpleMatrix(x);
-			double tst = evaluate(xOld, means, covs, weights);
 			SimpleEVD hessianEVD = hessian.eig();
 			int maxEVIndex = hessianEVD.getIndexMax();
 			if(hessianEVD.getEigenvalue(maxEVIndex).getReal() < 0){
@@ -693,7 +749,7 @@ public class SampleModel extends BaseSampleDistribution {
 				}
 			}
 			probability =	evaluate(x, means, covs, weights); 
-		}while(gradStep==null | gradStep.elementMaxAbs() > 0.0001);
+		}while(gradStep.elementMaxAbs() > 1E-10);
 		
 		return new SearchResult(x, probability);
 	}
@@ -753,24 +809,7 @@ public class SampleModel extends BaseSampleDistribution {
 		}
 		return mahalanobisDistances;
 	}
-	
-	/*public ArrayList<Double> mahalanobisMarginal(SimpleMatrix x, ArrayList<SimpleMatrix> means, ArrayList<SimpleMatrix> covs) {
-		int[] margDimensions = {0,1,2,3};
-		ArrayList<Double> mahalanobisDistances = new java.util.ArrayList<Double>();
-		x.set(x.numRows()-2,0,0);
-		x.set(x.numRows()-1,0,0);
-		for (int i = 0; i < means.size(); i++) {
-			SimpleMatrix m = means.get(i);
-			SimpleMatrix tmpMatrix = new SimpleMatrix(m.numRows(),1);
-			for(int j=0; j<margDimensions.length; j++) {
-				tmpMatrix.set(j,0,m.get(margDimensions[j],0));
-			}
-			SimpleMatrix c = covs.get(i);
-			double distance = x.minus(tmpMatrix).transpose().mult(c.invert()).mult(x.minus(tmpMatrix)).trace();
-			mahalanobisDistances.add(distance);
-		}
-		return mahalanobisDistances;
-	}*/
+
 	
 	public void resetProbabilityCache(){
 		mProbabilityCache.clear();
@@ -787,7 +826,7 @@ public class SampleModel extends BaseSampleDistribution {
 	 * @param condDim An array containing the dimensions that shall be taken as conditional variables
 	 * @return The conditional probability 
 	 */
-	public double evaluateConditional(SimpleMatrix pointVector, int[] condDim) {
+	/*public double evaluateConditional(SimpleMatrix pointVector, int[] condDim) {
 		if(mProbabilityCache.containsKey(new HashableSimpleMatrix(pointVector))){
 			return mProbabilityCache.get(new HashableSimpleMatrix(pointVector));
 		}
@@ -861,150 +900,9 @@ public class SampleModel extends BaseSampleDistribution {
 			}
 		}
 		return d;
-	}
+	}*/
 	
-	/**
-	 * Finds the volume under the surface described by this KDE. The point that is given as the center
-	 * parameter is taken and a square is defined around this point 
-	 * Using xSegs number of segments across the x axis and ySegs number of segments across the y axis. 
-	 * @param center A column vector 
-	 * @param xSegs The number of segments in the x axis.
-	 * @param ySegs The number of segments in the y axis.
-	 * @return The volume under the pdf.
-	 */
-	public double cummulativeConditional(SimpleMatrix fixed , SimpleMatrix center, double squareWidth, int xSegs, int ySegs) {
-    	int[] condDim = new int[fixed.numRows()];
-    	for(int i=0; i<condDim.length; i++){
-    		condDim[i] = i;
-    	}
-		double a = center.get(0,0)-squareWidth/2;
-		double b = center.get(0,0)+squareWidth/2;
-		double c = center.get(1,0)-squareWidth/2;
-		double d = center.get(1,0)+squareWidth/2;
-	    double xSegSize = (b - a) / xSegs; // length of an x segment.
-	    double ySegSize = (d - c) / ySegs; // length of a y segment.
-	    double volume = 0; // volume under the surface.
-    	double[][] tmp = new double[fixed.numRows()+2][1];
-    	for(int i=0; i<fixed.numRows(); i++) {
-    		tmp[i][0] = fixed.get(i,0);
-    	}
-    	int dim = tmp.length-1;
-	    for (int i = 0; i < xSegs; i++) {
-	        for (int j = 0; j < ySegs; j++) {
-	        	tmp[dim-1][0] = a + (xSegSize * i);
-	        	tmp[dim][0] = c + (ySegSize * j);
-	            double height = evaluateConditional(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
-	        	tmp[dim][0] = c + (ySegSize * j);
-	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
-	        	tmp[dim][0] = c + (ySegSize * (j + 1));
-	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * i);
-	        	tmp[dim][0] = c + (ySegSize * (j + 1));
-	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
-	            height /= 4;
-
-	            // height is the average value of the corners of the current segment.
-	            // We can use the average value since a box of this height has the same volume as the original segment shape.
-
-	            // Add the volume of the box to the volume.
-	            if (height>1)
-	            	System.out.println(1);
-	            volume += xSegSize * ySegSize * height;
-	        }
-	    }
-
-	    return volume;
-	}
-	
-	public double cummulativeMarginal(SimpleMatrix fixed , SimpleMatrix center, double squareWidth, int xSegs, int ySegs) {
-		int[] condDim = new int[center.numRows()];
-    	for(int i=0; i<condDim.length; i++){
-    		condDim[i] = i;
-    	}
-		double a = center.get(0,0)-squareWidth/2;
-		double b = center.get(0,0)+squareWidth/2;
-		double c = center.get(1,0)-squareWidth/2;
-		double d = center.get(1,0)+squareWidth/2;
-	    double xSegSize = (b - a) / xSegs; // length of an x segment.
-	    double ySegSize = (d - c) / ySegs; // length of a y segment.
-	    double volume = 0; // volume under the surface.
-    	double[][] tmp = new double[fixed.numRows()+2][1];
-    	for(int i=0; i<fixed.numRows(); i++) {
-    		tmp[i][0] = fixed.get(i,0);
-    	}
-    	int dim = tmp.length-1;
-	    for (int i = 0; i < xSegs; i++) {
-	        for (int j = 0; j < ySegs; j++) {
-	        	tmp[dim-1][0] = a + (xSegSize * i);
-	        	tmp[dim][0] = c + (ySegSize * j);
-	            double height = marginal(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
-	        	tmp[dim][0] = c + (ySegSize * j);
-	            height += marginal(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
-	        	tmp[dim][0] = c + (ySegSize * (j + 1));
-	            height += marginal(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * i);
-	        	tmp[dim][0] = c + (ySegSize * (j + 1));
-	            height += marginal(new SimpleMatrix(tmp),condDim);
-	            height /= 4;
-
-	            // height is the average value of the corners of the current segment.
-	            // We can use the average value since a box of this height has the same volume as the original segment shape.
-
-	            // Add the volume of the box to the volume.
-	            if (height>1)
-	            	System.out.println(1);
-	            volume += xSegSize * ySegSize * height;
-	        }
-	    }
-
-	    return volume;
-	}
-	
-	public double trapezoidRule1(SimpleMatrix fixed , SimpleMatrix bounds, int xSegs, int ySegs) {
-		double a = bounds.get(0,0)-5;
-		double b = bounds.get(0,0)+5;
-		double c = bounds.get(1,0)-5;
-		double d = bounds.get(1,0)+5;
-	    double xSegSize = (b - a) / xSegs; // length of an x segment.
-	    double ySegSize = (d - c) / ySegs; // length of a y segment.
-	    double volume = 0; // volume under the surface.
-    	double[][] tmp = new double[fixed.numRows()+2][1];
-    	for(int i=0; i<fixed.numRows(); i++) {
-    		tmp[i][0] = fixed.get(i,0);
-    	}
-    	int dim = tmp.length-1;
-    	int[] condDim = {0,1};
-	    for (int i = 0; i < xSegs; i++) {
-	        for (int j = 0; j < ySegs; j++) {
-	        	tmp[dim-1][0] = a + (xSegSize * i);
-	        	tmp[dim][0] = c + (ySegSize * j);
-	            double height = evaluateConditional(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
-	        	tmp[dim][0] = c + (ySegSize * j);
-	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * (i + 1));
-	        	tmp[dim][0] = c + (ySegSize * (j + 1));
-	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
-	            tmp[dim-1][0] = a + (xSegSize * i);
-	        	tmp[dim][0] = c + (ySegSize * (j + 1));
-	            height += evaluateConditional(new SimpleMatrix(tmp),condDim);
-	            height /= 4;
-
-	            // height is the average value of the corners of the current segment.
-	            // We can use the average value since a box of this height has the same volume as the original segment shape.
-
-	            // Add the volume of the box to the volume.
-	            volume += xSegSize * ySegSize * height;
-	        }
-	    }
-
-	    return volume;
-	}
-	
+		
 	/**
 	 * Evaluates the distribution at the given n-dimensional points and returns
 	 * the results in a List of double-values.
