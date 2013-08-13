@@ -1,4 +1,4 @@
-package de.tuhh.luethke.oKDE.utility;
+package de.tuhh.luethke.oKDE.utility.Compression;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -11,6 +11,10 @@ import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
 import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.SampleModel;
 import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
+import de.tuhh.luethke.oKDE.utility.MatrixOps;
+import de.tuhh.luethke.oKDE.utility.MomentMatcher;
+import de.tuhh.luethke.oKDE.utility.Projection.ProjectionData;
+import de.tuhh.luethke.oKDE.utility.Projection.Projector;
 
 public class Compressor {
 	private final static double CONST_SMALL_TOLERANCE = 1E-10;

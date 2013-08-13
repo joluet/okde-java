@@ -1,4 +1,4 @@
-package de.tuhh.luethke.oKDE.utility;
+package de.tuhh.luethke.oKDE.utility.Compression;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +11,8 @@ import de.tuhh.luethke.oKDE.Exceptions.TooManyComponentsException;
 import de.tuhh.luethke.oKDE.model.OneComponentDistribution;
 import de.tuhh.luethke.oKDE.model.ThreeComponentDistribution;
 import de.tuhh.luethke.oKDE.model.TwoComponentDistribution;
+import de.tuhh.luethke.oKDE.utility.MatrixOps;
+import de.tuhh.luethke.oKDE.utility.SigmaPoint;
 
 public class Hellinger {
 

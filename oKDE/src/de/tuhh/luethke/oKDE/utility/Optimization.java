@@ -18,6 +18,10 @@ import de.tuhh.luethke.oKDE.model.SampleModel;
 public class Optimization {
 	private static final double MAX_MAHALANOBIS_DIST = 25;
 	
+	private static final double START_STEP_SIZE = 5;
+	
+	private static final double STOP_STEP_SIZE = 1E-8;
+	
 	/**
 	 * This method searches a local maximum by gradient-quadratic search. First a direct leap to the maximum by 
 	 * quadratic optimization is tried. Then gradient search is used to refine the result in case of an overshoot.
@@ -42,7 +46,7 @@ public class Optimization {
 		x.set(0,0,start.get(start.numRows()-2,0));
 		x.set(1,0,start.get(start.numRows()-1,0));
 		ArrayList<Double> mahalanobisDistances;
-		double step = 10;
+		double step = START_STEP_SIZE;
 		double probability = 0;
 		SimpleMatrix gradStep = null;
 		int count =0;
@@ -69,11 +73,6 @@ public class Optimization {
 
 
 			}
-			//prob /= a;
-			//int[] condDim = {0,1,2,3};
-			//double comp = evaluateConditional(start, condDim);
-			/*gradient = gradient.scale(1/a);
-			hessian = hessian.scale(1/a);*/
 			// save x
 			SimpleMatrix xOld = new SimpleMatrix(x);
 			double tst = evaluate(xOld, means, covs, weights);
@@ -101,7 +100,7 @@ public class Optimization {
 			count++;
 			// continue until the last step is sufficiently small or
 			// a predefined amount of steps was performed
-		}while(gradStep.elementMaxAbs() > 0.0001 && count<10);
+		}while(gradStep.elementMaxAbs() > STOP_STEP_SIZE && count<10);
 
 		// return results
 		return new SearchResult(x, probability);

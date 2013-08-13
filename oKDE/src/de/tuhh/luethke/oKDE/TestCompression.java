@@ -6,7 +6,7 @@ import org.ejml.simple.SimpleMatrix;
 
 import de.tuhh.luethke.oKDE.Exceptions.EmptyDistributionException;
 import de.tuhh.luethke.oKDE.model.BaseSampleDistribution;
-import de.tuhh.luethke.oKDE.utility.Hellinger;
+import de.tuhh.luethke.oKDE.utility.Compression.Hellinger;
 
 public class TestCompression {
 
