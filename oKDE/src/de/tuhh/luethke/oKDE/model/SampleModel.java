@@ -559,23 +559,8 @@ public class SampleModel extends BaseSampleDistribution {
 			
 			marginalMeans.add(m1);
 			marginalCovs.add(newC1);
-			
-			// calculate new weights
-			/*
-			double mahalanobisDistance = condition.minus(m2).transpose().mult(newC22.invert()).mult(condition.minus(m2)).trace();
-			double newWeight = ((1 / (a * Math.sqrt(newC22.determinant()))) * Math.exp((-0.5d) * mahalanobisDistance))* weights.get(i);
-			conditionalWeights.add(newWeight);*/
+
 		}
-		// normalize weights
-		/*double weightSum = 0;
-		for(int i=0; i<conditionalWeights.size(); i++) {
-			weightSum += conditionalWeights.get(i);
-		}
-		for(int i=0; i<conditionalWeights.size(); i++) {
-			double weight = conditionalWeights.get(i);
-			weight = weight /weightSum;
-			conditionalWeights.set(i,weight);
-		}*/
 		result = new ConditionalDistribution(marginalMeans, marginalCovs, weights);
 		return result;
 	}
@@ -814,95 +799,7 @@ public class SampleModel extends BaseSampleDistribution {
 	public void resetProbabilityCache(){
 		mProbabilityCache.clear();
 	}
-	
-	/**
-	 * Evaluates the conditional probability using the given point vector. 
-	 * 
-	 * Example: 
-	 * If the point vector is (4,1,3,2) and the conditional dimensions are 0,1 the probability of (4,1,3,2) under the condition 
-	 * that x1=4, x2=1 is evaluated.
-	 * 
-	 * @param pointVector This vector defines where the pdf should be evaluated
-	 * @param condDim An array containing the dimensions that shall be taken as conditional variables
-	 * @return The conditional probability 
-	 */
-	/*public double evaluateConditional(SimpleMatrix pointVector, int[] condDim) {
-		if(mProbabilityCache.containsKey(new HashableSimpleMatrix(pointVector))){
-			return mProbabilityCache.get(new HashableSimpleMatrix(pointVector));
-		}
-		
-		ArrayList<SimpleMatrix> means = this.getSubMeans();
-		ArrayList<SimpleMatrix> covs = this.getSubSmoothedCovariances();
-		ArrayList<Double> weights = this.getSubWeights();
-		
-		double d = 0d;
-		double n = means.get(0).numRows();
-		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
-		ArrayList<Double> mahalanobisDistances = mahalanobis(pointVector, means, covs);
-		int count =0;
-		for (int i = 0; i < means.size(); i++) {
-			// check wether the component actually contributes to to the density at given point 
-			if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
-				count++;
-				SimpleMatrix m = means.get(i);
-				SimpleMatrix c = covs.get(i);
-				double w = weights.get(i);
-				d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp((-0.5d) * mahalanobisDistances.get(i))) * w;
-			}
-		}
-		double marg = marginal(pointVector,condDim);
-		double cond = d/marg;
-		mProbabilityCache.put(new HashableSimpleMatrix(pointVector), cond);
-		return cond;
-	}
-	
-	
-	public double marginal(SimpleMatrix pointVector, int[] margDimensions){
-		SimpleMatrix tmpMatrix = new SimpleMatrix(margDimensions.length,1);
-		for(int i=0; i<margDimensions.length; i++) {
-			tmpMatrix.set(i,0,pointVector.get(margDimensions[i],0));
-		}
-		pointVector = tmpMatrix;
-		ArrayList<SimpleMatrix> means = new ArrayList<SimpleMatrix>();
-		ArrayList<SimpleMatrix> covs = new ArrayList<SimpleMatrix>();
-		ArrayList<Double> weights = new ArrayList<Double>();
-		means.addAll(this.getSubMeans());
-		covs.addAll(this.getSubSmoothedCovariances());
-		weights.addAll(this.getSubWeights());
-		for(int i=0; i<means.size(); i++){
-			double[][] m = new double[margDimensions.length][1];
-			for(int j=0; j<margDimensions.length; j++) {
-				m[j][0] = means.get(i).get(margDimensions[j], 0);
-			}
-			means.set(i, new SimpleMatrix(m));
-		}
-		for(int i=0; i<covs.size(); i++){
-			double[][] m = new double[margDimensions.length][margDimensions.length];
-			for(int j=0; j<margDimensions.length; j++) {
-				for(int k=0; k<margDimensions.length; k++) {
-					m[j][k] = covs.get(i).get(margDimensions[j], margDimensions[k]);
-				}
-			}
-			covs.set(i, new SimpleMatrix(m));
-		}
-		
-		double d = 0d;
-		double n = means.get(0).numRows();
-		double a = Math.pow(Math.sqrt(2 * Math.PI), n);
-		ArrayList<Double> mahalanobisDistances = mahalanobis(pointVector, means, covs);
-		for (int i = 0; i < means.size(); i++) {
-			// check whether the component actually contributes to to the density at given point 
-			if(mahalanobisDistances.get(i) < MAX_MAHALANOBIS_DIST) {
-				SimpleMatrix m = means.get(i);
-				SimpleMatrix c = covs.get(i);
-				double w = weights.get(i);
-				d += ((1 / (a * Math.sqrt(c.determinant()))) * Math.exp((-0.5d) * mahalanobisDistances.get(i))) * w;
-			}
-		}
-		return d;
-	}*/
-	
-		
+				
 	/**
 	 * Evaluates the distribution at the given n-dimensional points and returns
 	 * the results in a List of double-values.
