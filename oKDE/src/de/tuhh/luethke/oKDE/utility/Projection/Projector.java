@@ -144,8 +144,8 @@ public class Projector {
 
 	private static SimpleMatrix transformMatrix(SimpleMatrix trnsF, SimpleMatrix matrix, Double[] validElements, int countValidElements) {
 		// forward transform the pdf and remove non-valid eigendirections
-		if(matrix.numRows()!= countValidElements)
-			System.out.println("projection was necessary!!!");
+		//if(matrix.numRows()!= countValidElements)
+		//	System.out.println("projection was necessary!!!");
 		SimpleMatrix tmp = trnsF.mult(matrix).mult(trnsF.transpose());
 		SimpleMatrix trnsMatrix = new SimpleMatrix(countValidElements, countValidElements);
 		int row=0, column=0;
