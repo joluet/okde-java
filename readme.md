@@ -8,13 +8,14 @@ a model of human mobility and exploits the estimated model to predict future loc
 of human individuals (*Location Prediction Based on Mobility Patterns in Location Histories*:
 [git repository](https://github.com/joluet/prepos)).
 
---
+-------------------------------
 
 1. [oKDE algorithm](#okde)
 2. [Build instructions](#build)
 3. [Quickstart](#start)
 
 *******************************
+
 
 <a name="okde">
 ## oKDE algorithm
@@ -30,6 +31,8 @@ The basic principle of the oKDE algorithm is summarized by this graphic:
 
 For more details see ([oKDE](http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation)).
 
+
+
 <a name="build">
 ## Build instructions
 
@@ -42,6 +45,8 @@ Afterwards, the packed jar file can be found in the *dist*-folder.
 To compile the simple example, run ant with target *example* in project root:
 
 **$ ant example**
+
+
 
 <a name="start">
 ## Quickstart
