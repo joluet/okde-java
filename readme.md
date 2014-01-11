@@ -64,7 +64,7 @@ To use oKDE-Java in another project just include the jar file (see above [how to
 ## External Libraries Used
 
 The following libraries are used in oKDE-Java:
- *  ([EJML](https://code.google.com/p/efficient-java-matrix-library/))
- 	- A linear algebra library for manipulating dense matrices.
- *  ([JMathPlot](https://code.google.com/p/jmathplot/))
- 	- A library to draw math plots, used only in the example.
+ *  [EJML](https://code.google.com/p/efficient-java-matrix-library/),
+ 	a linear algebra library for manipulating dense matrices
+ *  [JMathPlot](https://code.google.com/p/jmathplot/),
+ 	a library to draw math plots, used only in the example
