@@ -13,7 +13,8 @@ of human individuals (*Location Prediction Based on Mobility Patterns in Locatio
 1. [oKDE algorithm](#okde)
 2. [Build instructions](#build)
 3. [Quickstart](#start)
-***
+
+*******************************
 
 <a name="okde">
 ## oKDE algorithm
