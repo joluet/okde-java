@@ -1,11 +1,12 @@
 oKDE-Java
 =========
 
-This is a Java *implementation* of the oKDE algorithm proposed by Matej Kristan, 
+This is a Java implementation of the oKDE algorithm proposed by Matej Kristan, 
 see ([oKDE](http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation)).
-This project is part of my master's thesis that uses the oKDE algorithm to esimate
+This project is part of my master's thesis that uses the oKDE algorithm to estimate
 a model of human mobility and exploits the estimated model to *predict future locations
-of human individuals* ([prepos](https://github.com/joluet/prepos)).
+of human individuals* (*Location Prediction Based on Mobility Patterns in Location Histories* 
+[prepos](https://github.com/joluet/prepos)).
 
 ## oKDE algorithm
 
