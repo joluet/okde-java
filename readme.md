@@ -1,24 +1,25 @@
 oKDE-Java
 =========
 
-This is a Java implementation of the oKDE algorithm proposed by Matej Kristan, 
-see ([oKDE](http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation)).
+This is a Java implementation of the oKDE algorithm proposed by Matej Kristan
+([oKDE](http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation)).
 This project is part of my master's thesis that uses the oKDE algorithm to estimate
 a model of human mobility and exploits the estimated model to predict future locations
 of human individuals (*Location Prediction Based on Mobility Patterns in Location Histories*:
 [git repository](https://github.com/joluet/prepos)).
 
--------------------------------
+*******************************
 
-1. [oKDE algorithm](#okde)
-2. [Build instructions](#build)
+1. [oKDE Algorithm](#okde)
+2. [Build Instructions](#build)
 3. [Quickstart](#start)
+4. [External Libraries Used](#ext_libs)
 
 *******************************
 
 
 <a name="okde">
-## oKDE algorithm
+## oKDE Algorithm
 
 Given a set of n-dimensional samples, this algorithm estimates 
 the distribution of the samples using kernel density estimation.
@@ -34,7 +35,7 @@ For more details see ([oKDE](http://www.vicos.si/Research/Multivariate_Online_Ke
 
 
 <a name="build">
-## Build instructions
+## Build Instructions
 
 Just execute ant in project root to compile the project:
 
@@ -56,3 +57,13 @@ to estimate a distribution of randomly generated samples. This example illustrat
 of oKDE-java.
 
 To use oKDE-Java in another project just include the jar file (see above [how to build](#build)).
+
+
+
+<a name="ext_libs">
+## External Libraries Used
+
+The following libraries are used in oKDE-Java:
+ *  ([EJML](https://code.google.com/p/efficient-java-matrix-library/))
+	(a linear algebra library for manipulating dense matrices)
+ *  ([jmathplot]()) (a library to draw math plots, used only in the example)
