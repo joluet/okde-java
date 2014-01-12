@@ -43,16 +43,12 @@ Just execute ant in project root to compile the project:
 
 Afterwards, the packed jar file can be found in the *dist*-folder.
 
-To compile the simple example, run ant with target *example* in project root:
-
-**$ ant example**
-
 
 
 <a name="start">
 ## Quickstart
 
-The file *src/de/tuhh/luethke/Example.java* contains a simple example that uses oKDE-Java
+[Here](https://github.com/joluet/okde-java-example) you can find a simple example that uses oKDE-Java
 to estimate a distribution of randomly generated samples. This example illustrates the basic usage
 of oKDE-java.
 
