@@ -1,3 +1,6 @@
 /doc
 /bin
 .classpath
+/dist
+/tmp
+/build
