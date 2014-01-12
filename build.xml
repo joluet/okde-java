@@ -1,4 +1,4 @@
-<project name="MyProject" default="dist" basedir=".">
+<project name="okde-java" default="dist" basedir=".">
 	<description>
 
 	</description>
@@ -7,12 +7,9 @@
 	<property name="build" location="build" />
 	<property name="lib" location="lib" />
 	<property name="dist" location="dist" />
-	<property name="main-class" value="de.tuhh.luethke.oKDE.Gaussian" />
 
 
 	<target name="init">
-		<!-- Create the time stamp -->
-		<tstamp />
 		<!-- Create the build directory structure used by compile -->
 		<mkdir dir="${build}" />
 	</target>
@@ -32,11 +29,9 @@
 		<!-- Create the distribution directory -->
 		<mkdir dir="${dist}" />
 
-		<!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
-		<jar jarfile="${dist}/MyProject-${DSTAMP}.jar" basedir="${build}">
-			<manifest>
-				<attribute name="Main-Class" value="${main-class}" />
-			</manifest>
+		<!-- Put everything in ${build} into the okde-java.jar file -->
+		<jar jarfile="${dist}/okde-java.jar" basedir="${build}" >
+		    <zipgroupfileset dir="${lib}" includes="**/*.jar" />
 		</jar>
 	</target>
 
