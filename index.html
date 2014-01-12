@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Okde-java : A Java implementation of online kernel density estimation (oKDE)" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Okde-java</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/joluet/okde-java">View on GitHub</a>
+
+          <h1 id="project_title">Okde-java</h1>
+          <h2 id="project_tagline">A Java implementation of online kernel density estimation (oKDE)</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/joluet/okde-java/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/joluet/okde-java/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="okde-java" class="anchor" href="#okde-java"><span class="octicon octicon-link"></span></a>oKDE-Java</h1>
+
+<p>This is a Java implementation of the oKDE algorithm proposed by Matej Kristan
+(<a href="http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation">oKDE</a>).
+This project is part of my master's thesis that uses the oKDE algorithm to estimate
+a model of human mobility and exploits the estimated model to predict future locations
+of human individuals (<em>Location Prediction Based on Mobility Patterns in Location Histories</em>:
+<a href="https://github.com/joluet/prepos">git repository</a>).</p>
+
+<hr><ol>
+<li><a href="#okde">oKDE Algorithm</a></li>
+<li><a href="#build">Build Instructions</a></li>
+<li><a href="#start">Quickstart</a></li>
+<li><a href="#ext_libs">External Libraries Used</a></li>
+</ol><hr><p><a name="okde"></a></p>
+
+<h2>
+<a name="okde-algorithm" class="anchor" href="#okde-algorithm"><span class="octicon octicon-link"></span></a>oKDE Algorithm</h2>
+
+<p>Given a set of n-dimensional samples, this algorithm estimates 
+the distribution of the samples using kernel density estimation.
+The output model is a <em>Mixture of Gaussians</em>.
+Moreover, the model is compressed and can be updated as new samples arrive.</p>
+
+<p>The basic principle of the oKDE algorithm is summarized by this graphic:</p>
+
+<p><img src="oKDE.png" alt="oKDE algorithm"></p>
+
+<p>For more details see (<a href="http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation">oKDE</a>).</p>
+
+<p><a name="build"></a></p>
+
+<h2>
+<a name="build-instructions" class="anchor" href="#build-instructions"><span class="octicon octicon-link"></span></a>Build Instructions</h2>
+
+<p>Just execute ant in project root to compile the project:</p>
+
+<p><strong>$ ant</strong></p>
+
+<p>Afterwards, the packed jar file can be found in the <em>dist</em>-folder.</p>
+
+<p>To compile the simple example, run ant with target <em>example</em> in project root:</p>
+
+<p><strong>$ ant example</strong></p>
+
+<p><a name="start"></a></p>
+
+<h2>
+<a name="quickstart" class="anchor" href="#quickstart"><span class="octicon octicon-link"></span></a>Quickstart</h2>
+
+<p>The file <em>src/de/tuhh/luethke/Example.java</em> contains a simple example that uses oKDE-Java
+to estimate a distribution of randomly generated samples. This example illustrates the basic usage
+of oKDE-java.</p>
+
+<p>To use oKDE-Java in another project just include the jar file (see above <a href="#build">how to build</a>).</p>
+
+<p><a name="ext_libs"></a></p>
+
+<h2>
+<a name="external-libraries-used" class="anchor" href="#external-libraries-used"><span class="octicon octicon-link"></span></a>External Libraries Used</h2>
+
+<p>The following libraries are used in oKDE-Java:</p>
+
+<ul>
+<li> <a href="https://code.google.com/p/efficient-java-matrix-library/">EJML</a>,
+a linear algebra library for manipulating dense matrices</li>
+</ul>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Okde-java maintained by <a href="https://github.com/joluet">joluet</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
