@@ -1,3 +1,8 @@
+/*
+ * Copyright 2014 Jonas Luethke
+ */
+
+
 package de.tuhh.luethke.okde.Exceptions;
 
 public class NoOfArgumentsException extends Exception {

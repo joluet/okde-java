@@ -1,3 +1,8 @@
+/*
+ * Copyright 2014 Jonas Luethke
+ */
+
+
 package de.tuhh.luethke.okde.utility.Projection;
 
 import java.util.Arrays;
