@@ -62,5 +62,4 @@ To use oKDE-Java in another project just include the jar file (see above [how to
 The following libraries are used in oKDE-Java:
  *  [EJML](https://code.google.com/p/efficient-java-matrix-library/),
  	a linear algebra library for manipulating dense matrices
- 	
  	License: http://www.apache.org/licenses/LICENSE-2.0
