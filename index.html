@@ -4,11 +4,11 @@
   <head>
     <meta charset='utf-8' />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="oKDE-java : A Java implementation of online kernel density estimation (oKDE)" />
+    <meta name="description" content="Okde-java : A Java implementation of online kernel density estimation (oKDE)" />
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
-    <title>oKDE-java</title>
+    <title>Okde-java</title>
   </head>
 
   <body>
@@ -18,7 +18,7 @@
         <header class="inner">
           <a id="forkme_banner" href="https://github.com/joluet/okde-java">View on GitHub</a>
 
-          <h1 id="project_title">oKDE-java</h1>
+          <h1 id="project_title">Okde-java</h1>
           <h2 id="project_tagline">A Java implementation of online kernel density estimation (oKDE)</h2>
 
             <section id="downloads">
@@ -46,6 +46,7 @@ of human individuals (<em>Location Prediction Based on Mobility Patterns in Loca
 <li><a href="#build">Build Instructions</a></li>
 <li><a href="#start">Quickstart</a></li>
 <li><a href="#ext_libs">External Libraries Used</a></li>
+<li><a href="#license">License</a></li>
 </ol><hr><p><a name="okde"></a></p>
 
 <h2>
@@ -58,7 +59,7 @@ Moreover, the model is compressed and can be updated as new samples arrive.</p>
 
 <p>The basic principle of the oKDE algorithm is summarized by this graphic:</p>
 
-<p><img src="images/oKDE.png" alt="oKDE algorithm"></p>
+<p><img src="oKDE.png" alt="oKDE algorithm"></p>
 
 <p>For more details see (<a href="http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation">oKDE</a>).</p>
 
@@ -78,7 +79,9 @@ Moreover, the model is compressed and can be updated as new samples arrive.</p>
 <h2>
 <a name="quickstart" class="anchor" href="#quickstart"><span class="octicon octicon-link"></span></a>Quickstart</h2>
 
-<p><a class="anchor" href="https://github.com/joluet/okde-java-example">Here</a> you can find a simple example that uses oKDE-Java to estimate a distribution of randomly generated samples. This example illustrates the basic usage of oKDE-java.</p>
+<p><a href="https://github.com/joluet/okde-java-example">Here</a> you can find a simple example that uses oKDE-Java
+to estimate a distribution of randomly generated samples. This example illustrates the basic usage
+of oKDE-java.</p>
 
 <p>To use oKDE-Java in another project just include the jar file (see above <a href="#build">how to build</a>).</p>
 
@@ -90,16 +93,23 @@ Moreover, the model is compressed and can be updated as new samples arrive.</p>
 <p>The following libraries are used in oKDE-Java:</p>
 
 <ul>
-<li> <a href="https://code.google.com/p/efficient-java-matrix-library/">EJML</a>,
-a linear algebra library for manipulating dense matrices</li>
-</ul>
+<li> <a href="https://code.google.com/p/efficient-java-matrix-library/">EJML v0.24</a>,
+a linear algebra library for manipulating dense matrices<br>
+License: <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache v2.0</a>
+</li>
+</ul><p><a name="license"></a></p>
+
+<h2>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>This project is under the <a href="license.md">MIT License (MIT)</a>.</p>
       </section>
     </div>
 
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">oKDE-java maintained by <a href="https://github.com/joluet">joluet</a></p>
+        <p class="copyright">Okde-java maintained by <a href="https://github.com/joluet">joluet</a></p>
         <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
