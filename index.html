@@ -2,9 +2,9 @@
 <html>
 
   <head>
-    <meta charset='utf-8' />
-    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Okde-java : A Java implementation of online kernel density estimation (oKDE)" />
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Okde-java : A Java implementation of online kernel density estimation (oKDE)">
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
@@ -32,7 +32,7 @@
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
         <h1>
-<a name="okde-java" class="anchor" href="#okde-java"><span class="octicon octicon-link"></span></a>oKDE-Java</h1>
+<a id="okde-java" class="anchor" href="#okde-java" aria-hidden="true"><span class="octicon octicon-link"></span></a>oKDE-Java</h1>
 
 <p>This is a Java implementation of the oKDE algorithm proposed by Matej Kristan
 (<a href="http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation">oKDE</a>).
@@ -41,16 +41,22 @@ a model of human mobility and exploits the estimated model to predict future loc
 of human individuals (<em>Location Prediction Based on Mobility Patterns in Location Histories</em>:
 <a href="https://github.com/joluet/prepos">git repository</a>).</p>
 
-<hr><ol>
+<hr>
+
+<ol>
 <li><a href="#okde">oKDE Algorithm</a></li>
 <li><a href="#build">Build Instructions</a></li>
 <li><a href="#start">Quickstart</a></li>
 <li><a href="#ext_libs">External Libraries Used</a></li>
 <li><a href="#license">License</a></li>
-</ol><hr><p><a name="okde"></a></p>
+</ol>
+
+<hr>
+
+<p><a name="okde"></a></p>
 
 <h2>
-<a name="okde-algorithm" class="anchor" href="#okde-algorithm"><span class="octicon octicon-link"></span></a>oKDE Algorithm</h2>
+<a id="okde-algorithm" class="anchor" href="#okde-algorithm" aria-hidden="true"><span class="octicon octicon-link"></span></a>oKDE Algorithm</h2>
 
 <p>Given a set of n-dimensional samples, this algorithm estimates 
 the distribution of the samples using kernel density estimation.
@@ -59,14 +65,14 @@ Moreover, the model is compressed and can be updated as new samples arrive.</p>
 
 <p>The basic principle of the oKDE algorithm is summarized by this graphic:</p>
 
-<p><img src="images/oKDE.png" alt="oKDE algorithm"></p>
+<p><img src="oKDE.png" alt="oKDE algorithm"></p>
 
 <p>For more details see (<a href="http://www.vicos.si/Research/Multivariate_Online_Kernel_Density_Estimation">oKDE</a>).</p>
 
 <p><a name="build"></a></p>
 
 <h2>
-<a name="build-instructions" class="anchor" href="#build-instructions"><span class="octicon octicon-link"></span></a>Build Instructions</h2>
+<a id="build-instructions" class="anchor" href="#build-instructions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build Instructions</h2>
 
 <p>Just execute ant in project root to compile the project:</p>
 
@@ -77,7 +83,7 @@ Moreover, the model is compressed and can be updated as new samples arrive.</p>
 <p><a name="start"></a></p>
 
 <h2>
-<a name="quickstart" class="anchor" href="#quickstart"><span class="octicon octicon-link"></span></a>Quickstart</h2>
+<a id="quickstart" class="anchor" href="#quickstart" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quickstart</h2>
 
 <p><a href="https://github.com/joluet/okde-java-example">Here</a> you can find a simple example that uses oKDE-Java
 to estimate a distribution of randomly generated samples. This example illustrates the basic usage
@@ -88,21 +94,43 @@ of oKDE-java.</p>
 <p><a name="ext_libs"></a></p>
 
 <h2>
-<a name="external-libraries-used" class="anchor" href="#external-libraries-used"><span class="octicon octicon-link"></span></a>External Libraries Used</h2>
+<a id="external-libraries-used" class="anchor" href="#external-libraries-used" aria-hidden="true"><span class="octicon octicon-link"></span></a>External Libraries Used</h2>
 
 <p>The following libraries are used in oKDE-Java:</p>
 
 <ul>
-<li> <a href="https://code.google.com/p/efficient-java-matrix-library/">EJML v0.24</a>,
-a linear algebra library for manipulating dense matrices<br>
-License: <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache v2.0</a>
+<li> <a href="https://code.google.com/p/efficient-java-matrix-library/">EJML</a>,
+a linear algebra library for manipulating dense matrices
+License: <a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a>
 </li>
-</ul><p><a name="license"></a></p>
+</ul>
+
+<p><a name="license"></a></p>
 
 <h2>
-<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
 
-<p>This project is under the <a href="license.md">MIT License (MIT)</a>.</p>
+<p>The MIT License (MIT)</p>
+
+<p>Copyright (c) 2014 Jonas Luthke</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</p>
       </section>
     </div>
 
@@ -110,7 +138,7 @@ License: <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache v2.0</a>
     <div id="footer_wrap" class="outer">
       <footer class="inner">
         <p class="copyright">Okde-java maintained by <a href="https://github.com/joluet">joluet</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
 
