@@ -38,9 +38,10 @@ For more details see ([oKDE](http://www.vicos.si/Research/Multivariate_Online_Ke
 <a name="build">
 ## Build Instructions
 
-Just execute ant in project root to compile the project:
 
-**$ ant**
+```sh
+./gradlew clean build
+```
 
 Afterwards, the packed jar file can be found in the *dist*-folder.
 
