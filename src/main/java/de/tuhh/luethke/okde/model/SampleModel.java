@@ -722,7 +722,7 @@ public class SampleModel extends BaseSampleDistribution {
 			}
 			// save x
 			SimpleMatrix xOld = new SimpleMatrix(x);
-			SimpleEVD hessianEVD = hessian.eig();
+			SimpleEVD<?> hessianEVD = hessian.eig();
 			int maxEVIndex = hessianEVD.getIndexMax();
 			if(hessianEVD.getEigenvalue(maxEVIndex).getReal() < 0){
 				gradStep = hessian.invert().mult(gradient);
